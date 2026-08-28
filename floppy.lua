@@ -1,5 +1,6 @@
 -- ============================================
--- CCLinux 1.7 - FLOPPY
+-- CCLinux 1.7
+-- FLOPPY
 -- ============================================
 
 local function encontrarDrive()
@@ -11,7 +12,6 @@ local function encontrarDrive()
         if peripheral.getType(nome) == "drive" then
             return nome
         end
-
     end
 
     return nil
@@ -25,60 +25,70 @@ local drive =
 if not drive then
 
     print("Nenhum floppy drive encontrado.")
+
     return
 end
 
--- --------------------------------------------
+local disco =
+    "/" .. drive
+
+-- ============================================
 -- LISTAR
--- --------------------------------------------
+-- ============================================
 
 if args[1] == "ls" then
 
-    local caminho = "/" .. drive
-
-    if not fs.exists(caminho) then
-        print("Nenhum floppy inserido.")
-        return
-    end
-
-    print("Arquivos do floppy:")
+    print("Floppy: " .. drive)
+    print("")
 
     local arquivos =
-        fs.list(caminho)
+        fs.list(disco)
 
     if #arquivos == 0 then
-        print("  (vazio)")
+
+        print("(vazio)")
+
         return
     end
 
     for _, arquivo in ipairs(arquivos) do
-        print("  " .. arquivo)
+
+        print(arquivo)
     end
 
     return
 end
 
--- --------------------------------------------
--- COPIAR
--- --------------------------------------------
+-- ============================================
+-- COPIAR DO FLOPPY
+-- ============================================
 
 if args[1] == "copy" then
 
-    local origem = args[2]
-    local destino = args[3]
+    local origem =
+        args[2]
+
+    local destino =
+        args[3]
 
     if not origem or not destino then
+
         print(
             "Uso: floppy_copy ARQUIVO DESTINO"
         )
+
         return
     end
 
     local arquivo =
-        "/" .. drive .. "/" .. origem
+        disco .. "/" .. origem
 
     if not fs.exists(arquivo) then
-        print("Arquivo nao encontrado no floppy.")
+
+        print(
+            "Arquivo nao encontrado no floppy."
+        )
+
         return
     end
 
@@ -92,10 +102,13 @@ if args[1] == "copy" then
     return
 end
 
--- --------------------------------------------
--- MENU
--- --------------------------------------------
+-- ============================================
+-- INFORMACOES
+-- ============================================
 
-print("Floppy:")
-print("  floppy_ls")
-print("  floppy_copy ARQUIVO DESTINO")
+print("Floppy encontrado: " .. drive)
+print("")
+print("Comandos:")
+print("")
+print("floppy_ls")
+print("floppy_copy ARQUIVO DESTINO")

@@ -1,188 +1,155 @@
 -- ============================================
--- CCLinux 1.7 - SHELL
+-- CCLinux 1.7
+-- SHELL
 -- ============================================
 
 local BASE = "/cclinux"
-local PERSONAL = BASE .. "/pasta pessoal"
 
-local monitor =
-    peripheral.find("monitor")
+local PERSONAL =
+    BASE .. "/pasta pessoal"
 
--- --------------------------------------------
--- NOME
--- --------------------------------------------
+-- ============================================
+-- MONITOR
+-- ============================================
 
-local function obterNome()
+local monitor = nil
 
-    local nome =
-        os.getComputerLabel()
+if fs.exists(
+    BASE .. "/monitor.lua"
+) then
 
-    if nome and nome ~= "" then
-        return nome
+    local ok, resultado =
+        pcall(function()
+            return dofile(
+                BASE .. "/monitor.lua"
+            )
+        end)
+
+    if ok then
+        monitor = resultado
     end
-
-    return "usuario"
 end
+
+-- ============================================
+-- NOME
+-- ============================================
 
 local nome =
-    obterNome()
+    os.getComputerLabel()
 
--- --------------------------------------------
--- MONITOR
--- --------------------------------------------
-
-local function monitorClear()
-
-    if not monitor then
-        return
-    end
-
-    monitor.clear()
-    monitor.setCursorPos(1, 1)
+if not nome or nome == "" then
+    nome = "usuario"
 end
+
+-- ============================================
+-- MONITOR
+-- ============================================
 
 local function monitorPrint(texto)
 
-    if not monitor then
-        return
+    if monitor then
+        monitor.write(
+            tostring(texto)
+        )
     end
-
-    local w, h =
-        monitor.getSize()
-
-    local x, y =
-        monitor.getCursorPos()
-
-    -- Quebra de linha quando chega
-    -- ao final da tela.
-
-    if y > h then
-        monitorClear()
-        x = 1
-        y = 1
-    end
-
-    monitor.setCursorPos(x, y)
-    monitor.write(
-        tostring(texto)
-    )
-
-    monitor.setCursorPos(
-        1,
-        y + 1
-    )
 end
+
+local function monitorClear()
+
+    if monitor then
+        monitor.clear()
+    end
+end
+
+-- ============================================
+-- ESCREVER NOS DOIS
+-- ============================================
 
 local function ambos(texto)
 
     print(texto)
-
     monitorPrint(texto)
 
 end
 
--- --------------------------------------------
+-- ============================================
 -- HELP
--- --------------------------------------------
+-- ============================================
 
 local function help()
 
     print("")
-    print("help       - Mostra a lista de comandos")
-    print("ls         - Mostra os arquivos")
-    print("cd NOME    - Entra em uma pasta")
-    print("cd ..      - Volta para a pasta anterior")
-    print("mkdir NOME - Cria uma pasta")
-    print("clear      - Limpa a tela")
-    print("echo TEXTO - Mostra um texto")
-    print("reboot     - Reinicia o computador")
-    print("shutdown   - Desliga o computador")
-    print("password   - Altera o codigo")
-    print("resetpessoal - Reinicia a pasta pessoal")
-    print("floppy     - Mostra comandos do floppy")
-    print("floppy_ls  - Lista o floppy")
-    print("floppy_copy - Copia arquivo do floppy")
-    print("install_cclinux - Instala o CCLinux")
+    print("CCLinux 1.7")
+    print("")
 
-    if monitor then
+    print(
+        "help       - mostra a lista de comandos"
+    )
 
-        monitorClear()
+    print(
+        "ls         - mostra os arquivos"
+    )
 
-        monitorPrint(
-            "CCLinux 1.7 - HELP"
-        )
+    print(
+        "cd NOME    - entra em uma pasta"
+    )
 
-        monitorPrint(
-            "--------------------------------"
-        )
+    print(
+        "cd ..      - volta uma pasta"
+    )
 
-        monitorPrint(
-            "help - Mostra a lista de comandos"
-        )
+    print(
+        "mkdir NOME - cria uma pasta"
+    )
 
-        monitorPrint(
-            "ls - Mostra os arquivos"
-        )
+    print(
+        "clear      - limpa as telas"
+    )
 
-        monitorPrint(
-            "cd NOME - Entra em uma pasta"
-        )
+    print(
+        "echo TEXTO - mostra um texto"
+    )
 
-        monitorPrint(
-            "cd .. - Volta uma pasta"
-        )
+    print(
+        "reboot     - reinicia o computador"
+    )
 
-        monitorPrint(
-            "mkdir NOME - Cria uma pasta"
-        )
+    print(
+        "shutdown   - desliga o computador"
+    )
 
-        monitorPrint(
-            "clear - Limpa a tela"
-        )
+    print(
+        "password   - altera o codigo"
+    )
 
-        monitorPrint(
-            "echo TEXTO - Mostra um texto"
-        )
+    print(
+        "resetpessoal - reinicia a pasta pessoal"
+    )
 
-        monitorPrint(
-            "reboot - Reinicia"
-        )
+    print(
+        "floppy     - mostra comandos do floppy"
+    )
 
-        monitorPrint(
-            "shutdown - Desliga"
-        )
+    print(
+        "floppy_ls  - mostra o floppy"
+    )
 
-        monitorPrint(
-            "password - Altera o codigo"
-        )
+    print(
+        "floppy_copy - copia arquivo do floppy"
+    )
 
-        monitorPrint(
-            "resetpessoal - Reinicia pasta pessoal"
-        )
+    print(
+        "makefloppy - cria floppy instalador"
+    )
 
-        monitorPrint(
-            "floppy - Comandos do floppy"
-        )
-
-        monitorPrint(
-            "floppy_ls - Lista o floppy"
-        )
-
-        monitorPrint(
-            "floppy_copy - Copia arquivo"
-        )
-
-        monitorPrint(
-            "install_cclinux - Instala o CCLinux"
-        )
-    end
+    print("")
 end
 
--- --------------------------------------------
--- PASSWORD
--- --------------------------------------------
+-- ============================================
+-- ALTERAR SENHA
+-- ============================================
 
-local function mudarSenha()
+local function password()
 
     local config =
         PERSONAL .. "/config.txt"
@@ -227,6 +194,7 @@ local function mudarSenha()
         if atual ~= senhaAtual then
 
             print("Codigo incorreto.")
+
             return
         end
     end
@@ -252,14 +220,15 @@ local function mudarSenha()
     print("Codigo alterado.")
 end
 
--- --------------------------------------------
--- RESET PESSOAL
--- --------------------------------------------
+-- ============================================
+-- RESET DA PASTA PESSOAL
+-- ============================================
 
 local function resetPessoal()
 
+    print("")
     print("ATENCAO!")
-    print("Isso apaga a pasta pessoal.")
+    print("Isso vai apagar a pasta pessoal.")
     print("")
 
     write("Digite SIM para continuar: ")
@@ -270,6 +239,7 @@ local function resetPessoal()
     if resposta ~= "SIM" then
 
         print("Cancelado.")
+
         return
     end
 
@@ -296,18 +266,24 @@ local function resetPessoal()
     f.close()
 
     print("Pasta pessoal reiniciada.")
+
+    print("O computador sera reiniciado.")
+
+    sleep(2)
+
+    os.reboot()
 end
 
--- --------------------------------------------
+-- ============================================
 -- SL
--- --------------------------------------------
+-- ============================================
 
 local function sl()
 
     term.clear()
     term.setCursorPos(1, 1)
 
-    local largura, altura =
+    local w, h =
         term.getSize()
 
     local trem = {
@@ -317,26 +293,19 @@ local function sl()
         "'-(_)---(_)--(_)------------'"
     }
 
-    local inicio =
-        largura + 5
-
-    for pos = inicio, -30, -1 do
+    for pos = w + 5, -25, -1 do
 
         term.clear()
 
         for i, linha in ipairs(trem) do
 
-            local x =
-                pos
-
             local y =
-                math.floor(
-                    altura / 2
-                ) + i - 2
+                math.floor(h / 2)
+                + i - 2
 
-            if x < largura + 1
-            and y >= 1
-            and y <= altura then
+            local x = pos
+
+            if y >= 1 and y <= h then
 
                 term.setCursorPos(
                     x,
@@ -354,18 +323,18 @@ local function sl()
     term.setCursorPos(1, 1)
 end
 
--- --------------------------------------------
--- /DOOM
--- --------------------------------------------
+-- ============================================
+-- DOOM MEME
+-- ============================================
 
 local function doom()
 
     term.clear()
     term.setCursorPos(1, 1)
 
-    print("======================================")
-    print("                DOOM ")
-    print("======================================")
+    print("================================")
+    print("             DOOM ")
+    print("================================")
     print("")
     print("1 - Atacar")
     print("2 - Procurar")
@@ -407,9 +376,9 @@ local function doom()
     term.setCursorPos(1, 1)
 end
 
--- --------------------------------------------
--- LOOP
--- --------------------------------------------
+-- ============================================
+-- LOOP PRINCIPAL
+-- ============================================
 
 while true do
 
@@ -417,51 +386,47 @@ while true do
         nome .. ":~$ "
     )
 
+    -- O monitor NAO recebe nada ainda.
+    -- Somente depois do ENTER.
+
     local entrada =
         read()
 
-    -- ----------------------------------------
-    -- SOMENTE AGORA vai para o monitor
-    -- ----------------------------------------
+    -- ========================================
+    -- ENVIAR COMANDO AO MONITOR
+    -- ========================================
 
-    if monitor then
+    monitorPrint(
+        nome .. ":~$ " .. entrada
+    )
 
-        monitorPrint(
-            nome .. ":~$ " .. entrada
-        )
-
-    end
-
-    -- ----------------------------------------
+    -- ========================================
     -- HELP
-    -- ----------------------------------------
+    -- ========================================
 
     if entrada == "help" then
 
         help()
 
-    -- ----------------------------------------
+    -- ========================================
     -- LS
-    -- ----------------------------------------
+    -- ========================================
 
     elseif entrada == "ls" then
 
-        local diretorio =
-            shell.dir()
-
         local arquivos =
-            fs.list(diretorio)
+            fs.list(
+                shell.dir()
+            )
 
-        for _, arquivo in ipairs(
-            arquivos
-        ) do
+        for _, arquivo in ipairs(arquivos) do
 
             ambos(arquivo)
         end
 
-    -- ----------------------------------------
+    -- ========================================
     -- CD
-    -- ----------------------------------------
+    -- ========================================
 
     elseif string.sub(
         entrada,
@@ -477,11 +442,13 @@ while true do
 
         if destino == ".." then
 
-            shell.setDir(
-                fs.getDir(
-                    shell.dir()
-                )
-            )
+            local atual =
+                shell.dir()
+
+            local pai =
+                fs.getDir(atual)
+
+            shell.setDir(pai)
 
         elseif fs.exists(destino)
         and fs.isDir(destino) then
@@ -495,9 +462,9 @@ while true do
             )
         end
 
-    -- ----------------------------------------
+    -- ========================================
     -- MKDIR
-    -- ----------------------------------------
+    -- ========================================
 
     elseif string.sub(
         entrada,
@@ -526,9 +493,9 @@ while true do
             )
         end
 
-    -- ----------------------------------------
+    -- ========================================
     -- CLEAR
-    -- ----------------------------------------
+    -- ========================================
 
     elseif entrada == "clear" then
 
@@ -537,9 +504,9 @@ while true do
 
         monitorClear()
 
-    -- ----------------------------------------
+    -- ========================================
     -- ECHO
-    -- ----------------------------------------
+    -- ========================================
 
     elseif string.sub(
         entrada,
@@ -547,60 +514,57 @@ while true do
         5
     ) == "echo " then
 
-        ambos(
+        local texto =
             string.sub(
                 entrada,
                 6
             )
-        )
 
-    -- ----------------------------------------
+        ambos(texto)
+
+    -- ========================================
     -- REBOOT
-    -- ----------------------------------------
+    -- ========================================
 
     elseif entrada == "reboot" then
 
-        ambos(
-            "Reiniciando..."
-        )
+        ambos("Reiniciando...")
 
         sleep(1)
 
         os.reboot()
 
-    -- ----------------------------------------
+    -- ========================================
     -- SHUTDOWN
-    -- ----------------------------------------
+    -- ========================================
 
     elseif entrada == "shutdown" then
 
-        ambos(
-            "Desligando..."
-        )
+        ambos("Desligando...")
 
         sleep(1)
 
         os.shutdown()
 
-    -- ----------------------------------------
+    -- ========================================
     -- PASSWORD
-    -- ----------------------------------------
+    -- ========================================
 
     elseif entrada == "password" then
 
-        mudarSenha()
+        password()
 
-    -- ----------------------------------------
-    -- RESET
-    -- ----------------------------------------
+    -- ========================================
+    -- RESET PESSOAL
+    -- ========================================
 
     elseif entrada == "resetpessoal" then
 
         resetPessoal()
 
-    -- ----------------------------------------
+    -- ========================================
     -- FLOPPY
-    -- ----------------------------------------
+    -- ========================================
 
     elseif entrada == "floppy" then
 
@@ -649,35 +613,35 @@ while true do
             )
         end
 
-    -- ----------------------------------------
-    -- INSTALADOR
-    -- ----------------------------------------
+    -- ========================================
+    -- MAKEFLOPPY
+    -- ========================================
 
-    elseif entrada == "install_cclinux" then
+    elseif entrada == "makefloppy" then
 
-        ambos(
-            "Instalador CCLinux ainda nao configurado."
+        shell.run(
+            BASE .. "/makefloppy.lua"
         )
 
-    -- ----------------------------------------
-    -- COMANDO SECRETO: SL
-    -- ----------------------------------------
+    -- ========================================
+    -- COMANDO ESCONDIDO
+    -- ========================================
 
     elseif entrada == "sl" then
 
         sl()
 
-    -- ----------------------------------------
-    -- COMANDO SECRETO: DOOM
-    -- ----------------------------------------
+    -- ========================================
+    -- COMANDO ESCONDIDO
+    -- ========================================
 
     elseif entrada == "/doom" then
 
         doom()
 
-    -- ----------------------------------------
-    -- DESCONHECIDO
-    -- ----------------------------------------
+    -- ========================================
+    -- COMANDO DESCONHECIDO
+    -- ========================================
 
     else
 

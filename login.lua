@@ -1,31 +1,36 @@
 -- ============================================
--- CCLinux 1.7 - LOGIN
+-- CCLinux 1.7
+-- LOGIN
 -- ============================================
 
-local BASE = "/cclinux"
-local PERSONAL = BASE .. "/pasta pessoal"
-local CONFIG = PERSONAL .. "/config.txt"
+local PERSONAL =
+    "/cclinux/pasta pessoal"
+
+local CONFIG =
+    PERSONAL .. "/config.txt"
+
+-- ============================================
+-- GARANTIR PASTA
+-- ============================================
 
 if not fs.exists(PERSONAL) then
     fs.makeDir(PERSONAL)
 end
 
+-- ============================================
+-- PRIMEIRA CONFIGURACAO
+-- ============================================
+
 local nome = nil
 local senha = nil
 
--- --------------------------------------------
--- LER CONFIG
--- --------------------------------------------
-
 if fs.exists(CONFIG) then
 
-    local f =
-        fs.open(CONFIG, "r")
+    local f = fs.open(CONFIG, "r")
 
     while true do
 
-        local linha =
-            f.readLine()
+        local linha = f.readLine()
 
         if not linha then
             break
@@ -55,21 +60,24 @@ if fs.exists(CONFIG) then
     f.close()
 end
 
--- --------------------------------------------
+-- ============================================
 -- PRIMEIRA VEZ
--- --------------------------------------------
+-- ============================================
 
-if not nome or nome == "" or nome == "usuario" then
+if not nome
+or nome == ""
+or nome == "usuario" then
 
     term.clear()
     term.setCursorPos(1, 1)
 
     print("======================================")
-    print("           CONFIGURACAO")
+    print("           CONFIGURACãO")
     print("======================================")
     print("")
 
     write("Nome: ")
+
     nome = read()
 
     if nome == "" then
@@ -79,13 +87,19 @@ if not nome or nome == "" or nome == "usuario" then
     print("")
 
     write("Codigo: ")
+
     senha = read("*")
 
     local f =
         fs.open(CONFIG, "w")
 
-    f.writeLine("nome=" .. nome)
-    f.writeLine("senha=" .. senha)
+    f.writeLine(
+        "nome=" .. nome
+    )
+
+    f.writeLine(
+        "senha=" .. senha
+    )
 
     f.close()
 
@@ -93,14 +107,15 @@ if not nome or nome == "" or nome == "usuario" then
 
     print("")
     print("Configuracao concluida!")
+
     sleep(1)
 
     return
 end
 
--- --------------------------------------------
--- LOGIN
--- --------------------------------------------
+-- ============================================
+-- LOGIN NORMAL
+-- ============================================
 
 term.clear()
 term.setCursorPos(1, 1)
@@ -123,6 +138,7 @@ if senha ~= "" then
 
         print("")
         print("Codigo incorreto.")
+
         sleep(2)
 
         os.reboot()

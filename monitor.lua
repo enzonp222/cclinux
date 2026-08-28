@@ -1,83 +1,137 @@
 -- ============================================
--- CCLinux 1.7 - MONITOR
+-- CCLinux 1.7
+-- MONITOR
 -- ============================================
 
-local monitor = peripheral.find("monitor")
+local M = {}
 
--- Se nao houver monitor, nao faz nada.
-if not monitor then
-    return
+M.monitor =
+    peripheral.find("monitor")
+
+-- ============================================
+-- CONFIGURAR
+-- ============================================
+
+function M.configurar()
+
+    if not M.monitor then
+        return false
+    end
+
+    M.monitor.setBackgroundColor(colors.black)
+    M.monitor.setTextColor(colors.white)
+
+    local w, h =
+        M.monitor.getSize()
+
+    if w >= 80 then
+        M.monitor.setTextScale(1.5)
+    elseif w >= 50 then
+        M.monitor.setTextScale(1)
+    else
+        M.monitor.setTextScale(0.5)
+    end
+
+    M.monitor.clear()
+    M.monitor.setCursorPos(1, 1)
+
+    return true
 end
 
-monitor.setBackgroundColor(colors.black)
-monitor.setTextColor(colors.white)
+-- ============================================
+-- LIMPAR
+-- ============================================
 
--- --------------------------------------------
--- TAMANHO AUTOMATICO
--- --------------------------------------------
+function M.clear()
 
-local largura, altura =
-    monitor.getSize()
+    if not M.monitor then
+        return
+    end
 
-local escala = 1
-
-if largura >= 80 then
-    escala = 1.5
-elseif largura >= 50 then
-    escala = 1
-elseif largura >= 30 then
-    escala = 0.5
-else
-    escala = 1
+    M.monitor.clear()
+    M.monitor.setCursorPos(1, 1)
 end
 
-monitor.setTextScale(escala)
+-- ============================================
+-- ESCREVER
+-- ============================================
 
-monitor.clear()
-monitor.setCursorPos(1, 1)
+function M.write(texto)
 
--- --------------------------------------------
--- FUNCAO DE LIMPEZA
--- --------------------------------------------
+    if not M.monitor then
+        return
+    end
 
-local function limpar()
-    monitor.clear()
-    monitor.setCursorPos(1, 1)
-end
+    local w, h =
+        M.monitor.getSize()
 
--- --------------------------------------------
--- TELA DO MONITOR
--- --------------------------------------------
+    local x, y =
+        M.monitor.getCursorPos()
 
-local w, h =
-    monitor.getSize()
+    texto = tostring(texto)
 
-local titulo = "CCLinux 1.7"
+    -- Quebrar textos grandes
+    while #texto > w do
 
-local x =
-    math.max(
+        M.monitor.setCursorPos(
+            1,
+            y
+        )
+
+        M.monitor.write(
+            string.sub(
+                texto,
+                1,
+                w
+            )
+        )
+
+        texto =
+            string.sub(
+                texto,
+                w + 1
+            )
+
+        y = y + 1
+
+        if y > h then
+            M.clear()
+            y = 1
+        end
+    end
+
+    if y > h then
+        M.clear()
+        y = 1
+    end
+
+    M.monitor.setCursorPos(
         1,
-        math.floor(
-            (w - #titulo) / 2
-        ) + 1
+        y
     )
 
-monitor.setCursorPos(x, 1)
-monitor.write(titulo)
+    M.monitor.write(texto)
 
-if h >= 3 then
-    monitor.setCursorPos(1, 3)
-    monitor.write(
-        string.rep("-", w)
+    M.monitor.setCursorPos(
+        1,
+        y + 1
     )
 end
 
-if h >= 5 then
+-- ============================================
+-- TEXTO CENTRALIZADO
+-- ============================================
 
-    local texto =
-        "Terminal pronto."
+function M.center(texto, linha)
 
-    local tx =
+    if not M.monitor then
+        return
+    end
+
+    local w =
+        M.monitor.getSize()
+
+    local x =
         math.max(
             1,
             math.floor(
@@ -85,15 +139,14 @@ if h >= 5 then
             ) + 1
         )
 
-    monitor.setCursorPos(tx, 5)
-    monitor.write(texto)
+    M.monitor.setCursorPos(
+        x,
+        linha
+    )
+
+    M.monitor.write(texto)
 end
 
--- --------------------------------------------
--- O MONITOR FICA PARADO
--- --------------------------------------------
--- O shell escreve nele quando necessario.
+M.configurar()
 
-while true do
-    sleep(60)
-end
+return M

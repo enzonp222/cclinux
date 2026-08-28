@@ -1,71 +1,14 @@
 -- ============================================
--- CCLinux 1.7 - STARTUP
+-- CCLinux 1.7
+-- STARTUP
 -- ============================================
-
-local BASE = "/cclinux"
 
 local monitor = peripheral.find("monitor")
 local speaker = peripheral.find("speaker")
 
--- --------------------------------------------
--- FUNCOES DE MONITOR
--- --------------------------------------------
-
-local function monitorInit()
-    if not monitor then
-        return
-    end
-
-    monitor.setTextScale(1)
-    monitor.setBackgroundColor(colors.black)
-    monitor.setTextColor(colors.white)
-    monitor.clear()
-    monitor.setCursorPos(1, 1)
-
-    local w, h = monitor.getSize()
-
-    local titulo = "CCLinux 1.7"
-    local x = math.max(1, math.floor((w - #titulo) / 2) + 1)
-
-    monitor.setCursorPos(x, 2)
-    monitor.write(titulo)
-
-    if h >= 4 then
-        local texto = "Inicializando..."
-        local tx = math.max(1, math.floor((w - #texto) / 2) + 1)
-
-        monitor.setCursorPos(tx, 4)
-        monitor.write(texto)
-    end
-end
-
-local function monitorFinal()
-    if not monitor then
-        return
-    end
-
-    local w, h = monitor.getSize()
-
-    monitor.clear()
-
-    local titulo = "CCLinux 1.7"
-    local x = math.max(1, math.floor((w - #titulo) / 2) + 1)
-
-    monitor.setCursorPos(x, 2)
-    monitor.write(titulo)
-
-    if h >= 4 then
-        local texto = "Sistema iniciado!"
-        local tx = math.max(1, math.floor((w - #texto) / 2) + 1)
-
-        monitor.setCursorPos(tx, 4)
-        monitor.write(texto)
-    end
-end
-
--- --------------------------------------------
--- SOM
--- --------------------------------------------
+-- ============================================
+-- FUNCAO DE SOM
+-- ============================================
 
 local function som(pitch, tempo)
     if speaker then
@@ -74,17 +17,90 @@ local function som(pitch, tempo)
         end)
     end
 
-    sleep(tempo or 0.05)
+    sleep(tempo or 0.08)
 end
 
--- --------------------------------------------
--- TELA INICIAL
--- --------------------------------------------
+-- ============================================
+-- TELA DE INICIALIZACAO DO MONITOR
+-- ============================================
+
+local function monitorStartup()
+
+    if not monitor then
+        return
+    end
+
+    monitor.setBackgroundColor(colors.black)
+    monitor.setTextColor(colors.white)
+
+    -- Tamanho automatico apenas na inicializacao
+    local w, h = monitor.getSize()
+
+    if w >= 80 then
+        monitor.setTextScale(1.5)
+    elseif w >= 50 then
+        monitor.setTextScale(1)
+    elseif w >= 30 then
+        monitor.setTextScale(0.5)
+    else
+        monitor.setTextScale(0.5)
+    end
+
+    monitor.clear()
+
+    local titulo = "CCLinux 1.7"
+    local texto = "Inicializando..."
+
+    local x1 = math.max(1, math.floor((w - #titulo) / 2) + 1)
+    local x2 = math.max(1, math.floor((w - #texto) / 2) + 1)
+
+    monitor.setCursorPos(x1, 2)
+    monitor.write(titulo)
+
+    if h >= 4 then
+        monitor.setCursorPos(x2, 4)
+        monitor.write(texto)
+    end
+end
+
+-- ============================================
+-- TELA FINAL DO MONITOR
+-- ============================================
+
+local function monitorPronto()
+
+    if not monitor then
+        return
+    end
+
+    local w, h = monitor.getSize()
+
+    monitor.clear()
+
+    local titulo = "CCLinux 1.7"
+    local texto = "Sistema iniciado!"
+
+    local x1 = math.max(1, math.floor((w - #titulo) / 2) + 1)
+    local x2 = math.max(1, math.floor((w - #texto) / 2) + 1)
+
+    monitor.setCursorPos(x1, 2)
+
+    monitor.write(titulo)
+
+    if h >= 4 then
+        monitor.setCursorPos(x2, 4)
+        monitor.write(texto)
+    end
+end
+
+-- ============================================
+-- TERMINAL
+-- ============================================
 
 term.clear()
 term.setCursorPos(1, 1)
 
-monitorInit()
+monitorStartup()
 
 print("======================================")
 print("             CCLinux 1.7")
@@ -93,9 +109,10 @@ print("")
 print("Inicializando...")
 print("")
 
--- --------------------------------------------
--- BARRA
--- --------------------------------------------
+-- ============================================
+-- BARRA DE CARREGAMENTO
+-- SOMENTE NO TERMINAL
+-- ============================================
 
 local total = 30
 
@@ -126,17 +143,16 @@ for i = 0, total do
         "] " .. porcentagem .. "%"
     )
 
-    -- sons durante o carregamento
     if i == 5 then
-        som(12, 0.05)
+        som(12)
     elseif i == 10 then
-        som(14, 0.05)
+        som(14)
     elseif i == 15 then
-        som(16, 0.05)
+        som(16)
     elseif i == 20 then
-        som(18, 0.05)
+        som(18)
     elseif i == 25 then
-        som(20, 0.05)
+        som(20)
     elseif i == 30 then
         som(24, 0.15)
     else
@@ -148,42 +164,30 @@ print("")
 print("")
 print("Sistema iniciado!")
 
-som(24, 0.08)
-som(20, 0.08)
+som(24)
+som(20)
 som(24, 0.15)
 
-monitorFinal()
+monitorPronto()
 
 sleep(1)
 
--- --------------------------------------------
--- VERIFICAR SISTEMA
--- --------------------------------------------
+-- ============================================
+-- INICIAR KERNEL
+-- ============================================
 
-if not fs.exists(BASE) then
-
-    term.clear()
-    term.setCursorPos(1, 1)
-
-    print("ERRO!")
-    print("")
-    print("A pasta /cclinux nao existe.")
-    print("")
-    print("Instale o sistema primeiro.")
-
-    return
-end
-
-if not fs.exists(BASE .. "/kernel.lua") then
+if not fs.exists("/cclinux/kernel.lua") then
 
     term.clear()
     term.setCursorPos(1, 1)
 
     print("ERRO!")
     print("")
-    print("kernel.lua nao encontrado.")
+    print("kernel.lua não foi encontrado.")
+    print("")
+    print("O CCLinux não esta instalado corretamente.")
 
     return
 end
 
-shell.run(BASE .. "/kernel.lua")
+shell.run("/cclinux/kernel.lua")
