@@ -46,7 +46,7 @@ if not nome or nome == "" or nome == "usuario" then
     term.setCursorPos(1, 1)
 
     print("======================================")
-    print("          PRIMEIRA INICIALIZACAO")
+    print("            INICIALIZACAO")
     print("======================================")
     print("")
     print("Vamos configurar sua conta.")

@@ -22,9 +22,6 @@ local nome = obterNome()
 -- ============================================
 
 local function help()
-    print("--------------------------------------")
-    print("           CCLinux 1.7 - HELP")
-    print("--------------------------------------")
     print("")
     print("help       - Mostra a lista de comandos")
     print("ls         - Mostra os arquivos")
@@ -41,8 +38,6 @@ local function help()
     print("floppy_ls  - Lista os arquivos do floppy")
     print("floppy_copy - Copia arquivo do floppy")
     print("install_cclinux - Instala o CCLinux")
-    print("")
-    print("--------------------------------------")
 end
 
 -- ============================================
@@ -175,10 +170,10 @@ local function doom()
     term.setCursorPos(1, 1)
 
     print("======================================")
-    print("             DOOM MEME")
+    print("                DOOM ")
     print("======================================")
     print("")
-    print("Voce entrou no DOOM secreto.")
+    print("Voce entrou no DOOM.")
     print("")
     print("[1] Atacar")
     print("[2] Procurar")
