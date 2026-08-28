@@ -1,28 +1,20 @@
 -- ============================================
--- CCLinux 1.7
--- LOGIN
+-- CCLinux 1.7 - LOGIN
 -- ============================================
 
-local PERSONAL =
-    "/cclinux/pasta pessoal"
-
-local CONFIG =
-    PERSONAL .. "/config.txt"
-
--- ============================================
--- GARANTIR PASTA
--- ============================================
+local PERSONAL = "/cclinux/pasta pessoal"
+local CONFIG = PERSONAL .. "/config.txt"
 
 if not fs.exists(PERSONAL) then
     fs.makeDir(PERSONAL)
 end
 
--- ============================================
--- PRIMEIRA CONFIGURACAO
--- ============================================
-
 local nome = nil
 local senha = nil
+
+-- ============================================
+-- LER CONFIGURACAO
+-- ============================================
 
 if fs.exists(CONFIG) then
 
@@ -37,16 +29,10 @@ if fs.exists(CONFIG) then
         end
 
         local n =
-            string.match(
-                linha,
-                "^nome=(.*)$"
-            )
+            string.match(linha, "^nome=(.*)$")
 
         local s =
-            string.match(
-                linha,
-                "^senha=(.*)$"
-            )
+            string.match(linha, "^senha=(.*)$")
 
         if n then
             nome = n
@@ -72,7 +58,7 @@ or nome == "usuario" then
     term.setCursorPos(1, 1)
 
     print("======================================")
-    print("           CONFIGURACãO")
+    print("          CONFIGURACAO")
     print("======================================")
     print("")
 
@@ -84,11 +70,46 @@ or nome == "usuario" then
         nome = "usuario"
     end
 
-    print("")
+    -- ========================================
+    -- CRIAR SENHA
+    -- ========================================
 
-    write("Codigo: ")
+    while true do
 
-    senha = read("*")
+        print("")
+
+        write("Crie seu codigo: ")
+
+        local novaSenha =
+            read("*")
+
+        print("")
+
+        write("Confirme seu codigo: ")
+
+        local confirmacao =
+            read("*")
+
+        if novaSenha == confirmacao then
+
+            senha = novaSenha
+
+            print("")
+            print("Codigo confirmado!")
+
+            break
+
+        else
+
+            print("")
+            print("Os codigos nao sao iguais.")
+            print("Tente novamente.")
+        end
+    end
+
+    -- ========================================
+    -- SALVAR
+    -- ========================================
 
     local f =
         fs.open(CONFIG, "w")
@@ -108,7 +129,7 @@ or nome == "usuario" then
     print("")
     print("Configuracao concluida!")
 
-    sleep(1)
+    sleep(2)
 
     return
 end

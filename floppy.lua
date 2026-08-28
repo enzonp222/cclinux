@@ -1,13 +1,10 @@
 -- ============================================
--- CCLinux 1.7
--- FLOPPY
+-- CCLinux 1.7 - FLOPPY
 -- ============================================
 
 local function encontrarDrive()
 
-    for _, nome in ipairs(
-        peripheral.getNames()
-    ) do
+    for _, nome in ipairs(peripheral.getNames()) do
 
         if peripheral.getType(nome) == "drive" then
             return nome
@@ -17,98 +14,126 @@ local function encontrarDrive()
     return nil
 end
 
-local args = {...}
-
-local drive =
-    encontrarDrive()
+local drive = encontrarDrive()
 
 if not drive then
 
-    print("Nenhum floppy drive encontrado.")
-
+    print("ERRO: nenhum floppy drive encontrado.")
     return
 end
 
-local disco =
-    "/" .. drive
+local disco = "/" .. drive
+
+-- ============================================
+-- VERIFICAR DISCO
+-- ============================================
+
+local function discoInserido()
+
+    return disk.isPresent(disco)
+end
 
 -- ============================================
 -- LISTAR
 -- ============================================
 
-if args[1] == "ls" then
+local function listar()
+
+    if not discoInserido() then
+        print("Nenhum floppy inserido.")
+        return
+    end
 
     print("Floppy: " .. drive)
     print("")
 
-    local arquivos =
-        fs.list(disco)
+    local arquivos = fs.list(disco)
 
     if #arquivos == 0 then
-
-        print("(vazio)")
-
+        print("(floppy vazio)")
         return
     end
 
     for _, arquivo in ipairs(arquivos) do
-
         print(arquivo)
     end
-
-    return
 end
 
 -- ============================================
--- COPIAR DO FLOPPY
+-- COPIAR
 -- ============================================
 
-if args[1] == "copy" then
+local function copiar(origem, destino)
 
-    local origem =
-        args[2]
-
-    local destino =
-        args[3]
-
-    if not origem or not destino then
-
-        print(
-            "Uso: floppy_copy ARQUIVO DESTINO"
-        )
-
+    if not discoInserido() then
+        print("Nenhum floppy inserido.")
         return
     end
 
-    local arquivo =
+    if not origem or not destino then
+        print("Uso:")
+        print("floppy_copy ARQUIVO DESTINO")
+        return
+    end
+
+    local arquivoOrigem =
         disco .. "/" .. origem
 
-    if not fs.exists(arquivo) then
+    if not fs.exists(arquivoOrigem) then
 
         print(
-            "Arquivo nao encontrado no floppy."
+            "Arquivo nao encontrado no floppy:"
         )
+
+        print(origem)
 
         return
     end
 
     fs.copy(
-        arquivo,
+        arquivoOrigem,
         destino
     )
 
-    print("Arquivo copiado.")
-
-    return
+    print("Arquivo copiado:")
+    print(origem .. " -> " .. destino)
 end
 
 -- ============================================
--- INFORMACOES
+-- ARGUMENTOS
 -- ============================================
 
-print("Floppy encontrado: " .. drive)
-print("")
-print("Comandos:")
-print("")
-print("floppy_ls")
-print("floppy_copy ARQUIVO DESTINO")
+local args = {...}
+
+if args[1] == "ls" then
+
+    listar()
+
+elseif args[1] == "copy" then
+
+    copiar(
+        args[2],
+        args[3]
+    )
+
+else
+
+    print("================================")
+    print("       CCLinux - FLOPPY")
+    print("================================")
+    print("")
+    print("Drive: " .. drive)
+    print("")
+
+    if discoInserido() then
+        print("Floppy inserido.")
+    else
+        print("Nenhum floppy inserido.")
+    end
+
+    print("")
+    print("Comandos:")
+    print("")
+    print("floppy_ls")
+    print("floppy_copy ARQUIVO DESTINO")
+end

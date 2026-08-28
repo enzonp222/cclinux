@@ -1,106 +1,59 @@
 -- ============================================
--- CCLinux 1.7
--- STARTUP
+-- CCLinux 1.7 - STARTUP
 -- ============================================
 
 local monitor = peripheral.find("monitor")
 local speaker = peripheral.find("speaker")
 
--- ============================================
--- FUNCAO DE SOM
--- ============================================
-
-local function som(pitch, tempo)
+local function beep(pitch, duration)
     if speaker then
         pcall(function()
             speaker.playNote("harp", 1, pitch)
         end)
     end
-
-    sleep(tempo or 0.08)
+    sleep(duration or 0.08)
 end
 
 -- ============================================
--- TELA DE INICIALIZACAO DO MONITOR
--- ============================================
-
-local function monitorStartup()
-
-    if not monitor then
-        return
-    end
-
-    monitor.setBackgroundColor(colors.black)
-    monitor.setTextColor(colors.white)
-
-    -- Tamanho automatico apenas na inicializacao
-    local w, h = monitor.getSize()
-
-    if w >= 80 then
-        monitor.setTextScale(1.5)
-    elseif w >= 50 then
-        monitor.setTextScale(1)
-    elseif w >= 30 then
-        monitor.setTextScale(0.5)
-    else
-        monitor.setTextScale(0.5)
-    end
-
-    monitor.clear()
-
-    local titulo = "CCLinux 1.7"
-    local texto = "Inicializando..."
-
-    local x1 = math.max(1, math.floor((w - #titulo) / 2) + 1)
-    local x2 = math.max(1, math.floor((w - #texto) / 2) + 1)
-
-    monitor.setCursorPos(x1, 2)
-    monitor.write(titulo)
-
-    if h >= 4 then
-        monitor.setCursorPos(x2, 4)
-        monitor.write(texto)
-    end
-end
-
--- ============================================
--- TELA FINAL DO MONITOR
--- ============================================
-
-local function monitorPronto()
-
-    if not monitor then
-        return
-    end
-
-    local w, h = monitor.getSize()
-
-    monitor.clear()
-
-    local titulo = "CCLinux 1.7"
-    local texto = "Sistema iniciado!"
-
-    local x1 = math.max(1, math.floor((w - #titulo) / 2) + 1)
-    local x2 = math.max(1, math.floor((w - #texto) / 2) + 1)
-
-    monitor.setCursorPos(x1, 2)
-
-    monitor.write(titulo)
-
-    if h >= 4 then
-        monitor.setCursorPos(x2, 4)
-        monitor.write(texto)
-    end
-end
-
--- ============================================
--- TERMINAL
+-- TELA DE INICIALIZACAO
 -- ============================================
 
 term.clear()
 term.setCursorPos(1, 1)
 
-monitorStartup()
+if monitor then
+    monitor.setBackgroundColor(colors.black)
+    monitor.setTextColor(colors.white)
+
+    local w = monitor.getSize()
+
+    if w >= 80 then
+        monitor.setTextScale(0.5)
+    elseif w >= 50 then
+        monitor.setTextScale(0.75)
+    else
+        monitor.setTextScale(1)
+    end
+
+    monitor.clear()
+
+    local mw, mh = monitor.getSize()
+
+    local titulo = "CCLinux 1.7"
+    local texto = "INICIALIZANDO..."
+
+    monitor.setCursorPos(
+        math.max(1, math.floor((mw - #titulo) / 2) + 1),
+        math.max(1, math.floor(mh / 2) - 1)
+    )
+    monitor.write(titulo)
+
+    monitor.setCursorPos(
+        math.max(1, math.floor((mw - #texto) / 2) + 1),
+        math.max(1, math.floor(mh / 2) + 1)
+    )
+    monitor.write(texto)
+end
 
 print("======================================")
 print("             CCLinux 1.7")
@@ -111,7 +64,7 @@ print("")
 
 -- ============================================
 -- BARRA DE CARREGAMENTO
--- SOMENTE NO TERMINAL
+-- SOMENTE NO COMPUTADOR
 -- ============================================
 
 local total = 30
@@ -124,51 +77,59 @@ for i = 0, total do
     local preenchido =
         math.floor((i / total) * 30)
 
-    local vazio =
-        30 - preenchido
-
     term.setCursorPos(1, 7)
 
-    term.write("[")
-
     term.write(
-        string.rep("#", preenchido)
+        "[" ..
+        string.rep("#", preenchido) ..
+        string.rep("-", 30 - preenchido) ..
+        "] " ..
+        porcentagem ..
+        "%"
     )
 
-    term.write(
-        string.rep("-", vazio)
-    )
-
-    term.write(
-        "] " .. porcentagem .. "%"
-    )
-
-    if i == 5 then
-        som(12)
-    elseif i == 10 then
-        som(14)
-    elseif i == 15 then
-        som(16)
-    elseif i == 20 then
-        som(18)
-    elseif i == 25 then
-        som(20)
-    elseif i == 30 then
-        som(24, 0.15)
-    else
-        sleep(0.03)
+    if i % 5 == 0 then
+        beep(12 + math.floor(i / 5))
     end
+
+    sleep(0.04)
 end
 
 print("")
 print("")
-print("Sistema iniciado!")
+print("Inicializacao concluida!")
 
-som(24)
-som(20)
-som(24, 0.15)
+beep(24)
+sleep(0.2)
+beep(24)
 
-monitorPronto()
+-- ============================================
+-- MONITOR PRONTO
+-- ============================================
+
+if monitor then
+
+    monitor.clear()
+
+    local w, h = monitor.getSize()
+
+    local titulo = "CCLinux 1.7"
+    local texto = "Sistema iniciado!"
+
+    monitor.setCursorPos(
+        math.max(1, math.floor((w - #titulo) / 2) + 1),
+        math.max(1, math.floor(h / 2) - 1)
+    )
+
+    monitor.write(titulo)
+
+    monitor.setCursorPos(
+        math.max(1, math.floor((w - #texto) / 2) + 1),
+        math.max(1, math.floor(h / 2) + 1)
+    )
+
+    monitor.write(texto)
+end
 
 sleep(1)
 
@@ -176,16 +137,13 @@ sleep(1)
 -- INICIAR KERNEL
 -- ============================================
 
-if not fs.exists("/cclinux/kernel.lua") then
-
+if fs.exists("/cclinux/kernel.lua") then
+    shell.run("/cclinux/kernel.lua")
+else
     term.clear()
     term.setCursorPos(1, 1)
 
-    print("ERRO!")
+    print("ERRO: kernel.lua nao encontrado.")
     print("")
-    print("kernel.lua não foi encontrado.")
-    print("")
-    print("O CCLinux não esta instalado corretamente.")
-
-    return
+    print("CCLinux nao esta instalado corretamente.")
 end
