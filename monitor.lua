@@ -1,285 +1,56 @@
--- ==========================================
--- CCLinux 1.6 - MONITOR
--- ==========================================
+-- ============================================
+-- CCLinux 1.7 - MONITOR
+-- ============================================
 
-local M = {}
+local monitor = peripheral.find("monitor")
 
-local monitor = nil
-local speaker = nil
-
--- ==========================================
--- PROCURAR PERIFERICOS
--- ==========================================
-
-local function findDevices()
-
-    monitor =
-        peripheral.find("monitor")
-
-    speaker =
-        peripheral.find("speaker")
-
+-- Se nao houver monitor, termina silenciosamente
+if not monitor then
+    return
 end
 
--- ==========================================
--- CONFIGURAR MONITOR
--- ==========================================
+-- Configura o monitor SOMENTE quando inicia
+monitor.setTextScale(1)
 
-local function configure()
+local largura, altura = monitor.getSize()
 
-    if not monitor then
-        return
+monitor.setBackgroundColor(colors.black)
+monitor.setTextColor(colors.white)
+monitor.clear()
+
+-- Centraliza texto
+local function centralizar(texto, y)
+    local x = math.floor((largura - #texto) / 2) + 1
+
+    if x < 1 then
+        x = 1
     end
 
-    local largura, altura =
-        monitor.getSize()
-
-    local escala
-
-    if largura >= 80 then
-
-        escala = 0.5
-
-    elseif largura >= 50 then
-
-        escala = 0.75
-
-    elseif largura >= 30 then
-
-        escala = 1
-
-    else
-
-        escala = 1.5
-
-    end
-
-    monitor.setTextScale(
-        escala
-    )
-
-    monitor.setBackgroundColor(
-        colors.black
-    )
-
-    monitor.setTextColor(
-        colors.white
-    )
-
-    monitor.clear()
-
-    monitor.setCursorPos(
-        1,
-        1
-    )
+    monitor.setCursorPos(x, y)
+    monitor.write(texto)
 end
 
--- ==========================================
--- BEEP
--- ==========================================
+centralizar("CCLinux 1.7", 1)
 
-function M.beep(
-    pitch,
-    volume
-)
-
-    if speaker then
-
-        speaker.playNote(
-            "pling",
-            volume or 1,
-            pitch or 12
-        )
-
-    end
+if altura >= 3 then
+    monitor.setCursorPos(1, 3)
+    monitor.write(string.rep("-", largura))
 end
 
--- ==========================================
--- INICIALIZAR
--- ==========================================
-
-function M.init()
-
-    findDevices()
-    configure()
-
+if altura >= 5 then
+    centralizar("MONITOR ONLINE", 5)
 end
 
--- ==========================================
--- LIMPAR MONITOR
--- ==========================================
-
-function M.clear()
-
-    if not monitor then
-        return
-    end
-
-    monitor.clear()
-
-    monitor.setCursorPos(
-        1,
-        1
-    )
-
+if altura >= 7 then
+    centralizar("Sistema operacional", 7)
 end
 
--- ==========================================
--- ESCREVER NO MONITOR
--- ==========================================
-
-function M.write(text)
-
-    if not monitor then
-        return
-    end
-
-    monitor.write(
-        text
-    )
-
+if altura >= 9 then
+    centralizar("Monitor detectado", 9)
 end
 
--- ==========================================
--- ESCREVER LINHA
--- ==========================================
-
-function M.print(text)
-
-    if not monitor then
-        return
-    end
-
-    local _, y =
-        monitor.getCursorPos()
-
-    monitor.write(
-        text
-    )
-
-    monitor.setCursorPos(
-        1,
-        y + 1
-    )
-
+-- Mantem o monitor ativo.
+-- Ele nao interfere no teclado/terminal.
+while true do
+    sleep(60)
 end
-
--- ==========================================
--- BARRA DE INICIALIZACAO
--- ==========================================
-
-function M.loading()
-
-    term.clear()
-    term.setCursorPos(
-        1,
-        1
-    )
-
-    -- Monitor permanece preto.
-
-    if monitor then
-
-        monitor.clear()
-
-        monitor.setCursorPos(
-            1,
-            1
-        )
-
-    end
-
-    print(
-        "================================"
-    )
-
-    print(
-        "          CCLinux 1.6"
-    )
-
-    print(
-        "================================"
-    )
-
-    print()
-
-    print(
-        "Inicializando..."
-    )
-
-    M.beep(
-        12,
-        0.5
-    )
-
-    local total = 30
-
-    for i = 0, total do
-
-        local porcentagem =
-            math.floor(
-                (i / total) * 100
-            )
-
-        local blocos =
-            math.floor(
-                (i / total) * 20
-            )
-
-        local barra =
-            "[" ..
-            string.rep(
-                "#",
-                blocos
-            ) ..
-            string.rep(
-                "-",
-                20 - blocos
-            ) ..
-            "] " ..
-            porcentagem ..
-            "%"
-
-        term.setCursorPos(
-            1,
-            7
-        )
-
-        term.write(
-            barra
-        )
-
-        if i % 5 == 0 then
-
-            M.beep(
-                10 +
-                math.floor(i / 5),
-                0.3
-            )
-
-        end
-
-        sleep(0.05)
-
-    end
-
-    print()
-
-    print(
-        "Sistema iniciado!"
-    )
-
-    M.beep(
-        18,
-        0.7
-    )
-
-    sleep(1)
-
-end
-
--- ==========================================
--- EXPORTAR
--- ==========================================
-
-return M

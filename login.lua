@@ -1,285 +1,107 @@
--- ==========================================
--- CCLinux 1.6 - LOGIN
--- ==========================================
+-- ============================================
+-- CCLinux 1.7 - LOGIN
+-- ============================================
 
-local PASTA_PESSOAL =
-    "/pasta pessoal"
+local BASE = "/cclinux"
+local PERSONAL = BASE .. "/pasta pessoal"
+local CONFIG = PERSONAL .. "/config.txt"
 
-local ARQUIVO_NOME =
-    PASTA_PESSOAL .. "/nome"
+if not fs.exists(PERSONAL) then
+    fs.makeDir(PERSONAL)
+end
 
-local ARQUIVO_CODIGO =
-    PASTA_PESSOAL .. "/codigo"
+-- Le configuracao
+local nome = nil
+local senha = nil
 
--- ==========================================
--- PRIMEIRA INICIALIZACAO
--- ==========================================
+if fs.exists(CONFIG) then
+    local f = fs.open(CONFIG, "r")
 
-local function firstBoot()
+    while true do
+        local linha = f.readLine()
 
-    if fs.exists(PASTA_PESSOAL) then
-        return
+        if not linha then
+            break
+        end
+
+        local n = string.match(linha, "^nome=(.*)$")
+        local s = string.match(linha, "^senha=(.*)$")
+
+        if n then
+            nome = n
+        end
+
+        if s then
+            senha = s
+        end
     end
 
-    fs.makeDir(
-        PASTA_PESSOAL
-    )
+    f.close()
+end
+
+-- Primeira inicializacao
+if not nome or nome == "" or nome == "usuario" then
 
     term.clear()
     term.setCursorPos(1, 1)
 
-    print("================================")
-    print("       PRIMEIRA INICIALIZACAO")
-    print("================================")
-    print()
-    print("Bem-vindo ao CCLinux!")
-    print()
+    print("======================================")
+    print("          PRIMEIRA INICIALIZACAO")
+    print("======================================")
+    print("")
+    print("Vamos configurar sua conta.")
+    print("")
 
-    -- ======================================
-    -- NOME
-    -- ======================================
+    write("Digite seu nome: ")
+    nome = read()
 
-    while true do
-
-        write("Digite seu nome: ")
-
-        local nome =
-            read()
-
-        if nome ~= "" then
-
-            local arquivo =
-                fs.open(
-                    ARQUIVO_NOME,
-                    "w"
-                )
-
-            arquivo.write(nome)
-            arquivo.close()
-
-            break
-
-        else
-
-            print(
-                "O nome nao pode estar vazio."
-            )
-
-        end
-
+    if nome == "" then
+        nome = "usuario"
     end
 
-    print()
+    print("")
+    write("Digite uma senha: ")
+    senha = read("*")
 
-    -- ======================================
-    -- CODIGO
-    -- ======================================
+    local f = fs.open(CONFIG, "w")
+    f.writeLine("nome=" .. nome)
+    f.writeLine("senha=" .. senha)
+    f.close()
 
-    while true do
+    os.setComputerLabel(nome)
 
-        write("Crie um codigo: ")
+    print("")
+    print("Conta criada!")
+    sleep(1)
 
-        local codigo1 =
-            read("*")
-
-        print()
-
-        write("Confirme o codigo: ")
-
-        local codigo2 =
-            read("*")
-
-        print()
-
-        if codigo1 == "" then
-
-            print(
-                "O codigo nao pode estar vazio."
-            )
-
-        elseif codigo1 ~= codigo2 then
-
-            print(
-                "Os codigos nao sao iguais."
-            )
-
-        else
-
-            local arquivo =
-                fs.open(
-                    ARQUIVO_CODIGO,
-                    "w"
-                )
-
-            arquivo.write(codigo1)
-            arquivo.close()
-
-            print("Codigo criado!")
-
-            break
-        end
-
-        print()
-    end
-
-    print()
-    print("Configuracao concluida!")
-    print()
-    print("Reinicie o computador para continuar.")
-
-    sleep(3)
-
-    os.reboot()
+    return
 end
 
--- ==========================================
--- PEGAR NOME
--- ==========================================
+-- Login
+term.clear()
+term.setCursorPos(1, 1)
 
-local function getName()
+print("======================================")
+print("             CCLinux 1.7")
+print("======================================")
+print("")
+print("Usuario: " .. nome)
+print("")
 
-    if not fs.exists(ARQUIVO_NOME) then
-        return "Usuario"
-    end
+if senha and senha ~= "" then
 
-    local arquivo =
-        fs.open(
-            ARQUIVO_NOME,
-            "r"
-        )
+    write("Senha: ")
+    local tentativa = read("*")
 
-    local nome =
-        arquivo.readAll()
-
-    arquivo.close()
-
-    return nome
-end
-
--- ==========================================
--- LOGIN
--- ==========================================
-
-local function login()
-
-    if not fs.exists(
-        ARQUIVO_CODIGO
-    ) then
-
-        return getName()
-    end
-
-    local arquivo =
-        fs.open(
-            ARQUIVO_CODIGO,
-            "r"
-        )
-
-    local codigoCorreto =
-        arquivo.readAll()
-
-    arquivo.close()
-
-    local nome =
-        getName()
-
-    term.clear()
-    term.setCursorPos(1, 1)
-
-    print("================================")
-    print("          CCLinux 1.6")
-    print("================================")
-    print()
-    print("Ola, " .. nome .. "!")
-    print()
-    print("Sistema protegido.")
-    print()
-
-    while true do
-
-        write("Codigo de entrada: ")
-
-        local codigo =
-            read("*")
-
-        if codigo == codigoCorreto then
-
-            print()
-            print("Acesso permitido.")
-
-            sleep(1)
-
-            return nome
-
-        else
-
-            print()
-            print("Codigo incorreto.")
-            print()
-
-        end
-    end
-end
-
--- ==========================================
--- RESETAR PASTA PESSOAL
--- ==========================================
-
-local function reset()
-
-    print()
-    print("ATENCAO!")
-    print()
-    print(
-        "Isso apagará sua pasta pessoal."
-    )
-
-    print(
-        "Nome e codigo serao apagados."
-    )
-
-    print()
-
-    write(
-        "Digite SIM para continuar: "
-    )
-
-    local resposta =
-        read()
-
-    if resposta == "SIM" then
-
-        if fs.exists(
-            PASTA_PESSOAL
-        ) then
-
-            fs.delete(
-                PASTA_PESSOAL
-            )
-
-        end
-
-        print()
-        print("Pasta pessoal apagada.")
-        print("Reiniciando...")
-
+    if tentativa ~= senha then
+        print("")
+        print("Senha incorreta.")
         sleep(2)
-
         os.reboot()
-
-    else
-
-        print("Operacao cancelada.")
     end
 end
 
--- ==========================================
--- EXPORTAR FUNCOES
--- ==========================================
+os.setComputerLabel(nome)
 
-return {
-    firstBoot = firstBoot,
-    login = login,
-    reset = reset,
-    getName = getName
-}
+term.clear()
+term.setCursorPos(1, 1)

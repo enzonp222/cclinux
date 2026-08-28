@@ -1,99 +1,76 @@
--- ==========================================
--- CCLinux 1.6 - KERNEL
--- ==========================================
+-- ============================================
+-- CCLinux 1.7 - KERNEL
+-- ============================================
 
-local CCLINUX = "/cclinux"
+local BASE = "/cclinux"
+local PERSONAL = BASE .. "/pasta pessoal"
+local CONFIG = PERSONAL .. "/config.txt"
 
--- Verifica os arquivos necessários
+-- Cria a pasta pessoal na primeira inicializacao
+if not fs.exists(PERSONAL) then
+    fs.makeDir(PERSONAL)
 
-local arquivos = {
-    "monitor.lua",
-    "login.lua",
-    "floppy.lua",
-    "shell.lua"
-}
+    local f = fs.open(CONFIG, "w")
+    f.writeLine("nome=usuario")
+    f.writeLine("senha=")
+    f.close()
 
-for _, arquivo in ipairs(arquivos) do
+    local info = fs.open(PERSONAL .. "/LEIA-ME.txt", "w")
+    info.writeLine("Esta e a pasta pessoal do CCLinux.")
+    info.writeLine("Seus arquivos pessoais podem ficar aqui.")
+    info.close()
+end
 
-    if not fs.exists(
-        CCLINUX .. "/" .. arquivo
-    ) then
+-- Carrega nome
+local nome = "usuario"
 
-        term.clear()
-        term.setCursorPos(1, 1)
+if fs.exists(CONFIG) then
+    local f = fs.open(CONFIG, "r")
 
-        print("ERRO DO CCLINUX")
-        print()
-        print(
-            "Arquivo ausente: " ..
-            arquivo
-        )
+    while true do
+        local linha = f.readLine()
 
-        return
+        if not linha then
+            break
+        end
+
+        local n = string.match(linha, "^nome=(.*)$")
+
+        if n then
+            nome = n
+        end
+    end
+
+    f.close()
+end
+
+-- Define label do computador
+if os.getComputerLabel() == nil then
+    os.setComputerLabel(nome)
+end
+
+-- Executa login
+if fs.exists(BASE .. "/login.lua") then
+    local ok, novoNome = pcall(function()
+        return shell.run(BASE .. "/login.lua")
+    end)
+end
+
+-- Inicia monitor em paralelo
+local function iniciarMonitor()
+    if fs.exists(BASE .. "/monitor.lua") then
+        shell.run(BASE .. "/monitor.lua")
     end
 end
 
--- ==========================================
--- CARREGAR MONITOR
--- ==========================================
-
-local monitorModule =
-    dofile(
-        CCLINUX .. "/monitor.lua"
-    )
-
--- ==========================================
--- CARREGAR FLOPPY
--- ==========================================
-
-local floppyModule =
-    dofile(
-        CCLINUX .. "/floppy.lua"
-    )
-
--- ==========================================
--- CARREGAR LOGIN
--- ==========================================
-
-local loginModule =
-    dofile(
-        CCLINUX .. "/login.lua"
-    )
-
--- ==========================================
--- INICIALIZAR MONITOR
--- ==========================================
-
-monitorModule.init()
-
--- ==========================================
--- PRIMEIRA INICIALIZACAO
--- ==========================================
-
-loginModule.firstBoot()
-
--- ==========================================
--- LOGIN
--- ==========================================
-
-local nome =
-    loginModule.login()
-
-if not nome then
-    return
+-- Inicia shell
+local function iniciarShell()
+    if fs.exists(BASE .. "/shell.lua") then
+        shell.run(BASE .. "/shell.lua")
+    end
 end
 
--- ==========================================
--- TELA DE INICIALIZACAO
--- ==========================================
-
-monitorModule.loading()
-
--- ==========================================
--- INICIAR SHELL
--- ==========================================
-
-shell.run(
-    CCLINUX .. "/shell.lua",
-    nome
+parallel.waitForAny(
+    iniciarShell,
+    iniciarMonitor
 )

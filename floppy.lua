@@ -1,321 +1,87 @@
--- ==========================================
--- CCLinux 1.6 - FLOPPY
--- ==========================================
+-- ============================================
+-- CCLinux 1.7 - FLOPPY
+-- ============================================
 
-local F = {}
+local function encontrarFloppy()
+    local lista = peripheral.getNames()
 
--- ==========================================
--- ENCONTRAR DRIVE
--- ==========================================
+    for _, lado in ipairs(lista) do
+        if peripheral.getType(lado) == "drive" then
+            return lado
+        end
+    end
 
-local function getDrive()
-
-    return peripheral.find(
-        "drive"
-    )
-
+    return nil
 end
 
--- ==========================================
--- VERIFICAR FLOPPY
--- ==========================================
-
-local function getMount()
-
-    local drive =
-        getDrive()
+local function listar()
+    local drive = encontrarFloppy()
 
     if not drive then
-
-        return nil,
-            "Nenhum drive de floppy encontrado."
-
+        print("Nenhum floppy drive encontrado.")
+        return
     end
 
-    local nome =
-        peripheral.getName(
-            drive
-        )
+    local caminho = "/" .. drive
 
-    if not disk.isPresent(nome) then
-
-        return nil,
-            "Nenhum floppy inserido."
-
+    if not fs.exists(caminho) then
+        print("Drive encontrado, mas sem floppy.")
+        return
     end
 
-    local mount =
-        disk.getMountPath(
-            nome
-        )
+    print("Arquivos do floppy:")
 
-    if not mount then
+    local arquivos = fs.list(caminho)
 
-        return nil,
-            "Nao foi possivel acessar o floppy."
-
+    if #arquivos == 0 then
+        print("  (vazio)")
+        return
     end
 
-    return mount
+    for _, arquivo in ipairs(arquivos) do
+        print("  " .. arquivo)
+    end
 end
 
--- ==========================================
--- INFORMACOES
--- ==========================================
+local function copiar(origem, destino)
+    local drive = encontrarFloppy()
 
-function F.info()
-
-    local mount, erro =
-        getMount()
-
-    if not mount then
-
-        print(erro)
+    if not drive then
+        print("Nenhum floppy drive encontrado.")
         return
-
     end
 
-    local drive =
-        getDrive()
+    local origemFloppy = "/" .. drive .. "/" .. origem
 
-    local nome =
-        peripheral.getName(
-            drive
-        )
-
-    local label =
-        disk.getLabel(nome)
-
-    print(
-        "Floppy encontrado!"
-    )
-
-    print(
-        "Local: " .. mount
-    )
-
-    if label then
-
-        print(
-            "Nome: " .. label
-        )
-
-    else
-
-        print(
-            "Nome: sem nome"
-        )
-
+    if not fs.exists(origemFloppy) then
+        print("Arquivo nao encontrado no floppy.")
+        return
     end
 
+    fs.copy(origemFloppy, destino)
+
+    print("Arquivo copiado para:")
+    print(destino)
 end
 
--- ==========================================
--- LISTAR FLOPPY
--- ==========================================
+local args = {...}
 
-function F.list()
+if args[1] == "ls" then
+    listar()
 
-    local mount, erro =
-        getMount()
+elseif args[1] == "copy" then
 
-    if not mount then
-
-        print(erro)
+    if not args[2] or not args[3] then
+        print("Uso: floppy_copy ARQUIVO DESTINO")
         return
-
     end
 
-    print(
-        "Conteudo do floppy:"
-    )
+    copiar(args[2], args[3])
 
-    print()
-
-    for _, arquivo in ipairs(
-        fs.list(mount)
-    ) do
-
-        local caminho =
-            fs.combine(
-                mount,
-                arquivo
-            )
-
-        if fs.isDir(caminho) then
-
-            print(
-                "[DIR] " .. arquivo
-            )
-
-        else
-
-            print(
-                "      " .. arquivo
-            )
-
-        end
-
-    end
-
+else
+    print("Floppy CCLinux")
+    print("")
+    print("Use:")
+    print("  floppy_ls")
+    print("  floppy_copy ARQUIVO DESTINO")
 end
-
--- ==========================================
--- COPIAR ARQUIVO
--- ==========================================
-
-function F.copyToFloppy(
-    arquivo
-)
-
-    if not arquivo then
-
-        print(
-            "Uso: floppy_copy ARQUIVO"
-        )
-
-        return
-
-    end
-
-    if not fs.exists(arquivo) then
-
-        print(
-            "Arquivo nao encontrado."
-        )
-
-        return
-
-    end
-
-    local mount, erro =
-        getMount()
-
-    if not mount then
-
-        print(erro)
-        return
-
-    end
-
-    local destino =
-        fs.combine(
-            mount,
-            fs.getName(
-                arquivo
-            )
-        )
-
-    if fs.exists(destino) then
-
-        print(
-            "O arquivo ja existe no floppy."
-        )
-
-        return
-
-    end
-
-    fs.copy(
-        arquivo,
-        destino
-    )
-
-    print(
-        "Arquivo copiado para o floppy!"
-    )
-
-end
-
--- ==========================================
--- INSTALAR CCLINUX
--- ==========================================
-
-function F.install()
-
-    local mount, erro =
-        getMount()
-
-    if not mount then
-
-        print(erro)
-        return
-
-    end
-
-    print(
-        "Instalador do CCLinux 1.6"
-    )
-
-    print(
-        "=========================="
-    )
-
-    print()
-
-    local pasta =
-        fs.combine(
-            mount,
-            "cclinux"
-        )
-
-    if not fs.exists(pasta) then
-
-        fs.makeDir(pasta)
-
-    end
-
-    local arquivos = {
-        "kernel.lua",
-        "login.lua",
-        "monitor.lua",
-        "floppy.lua",
-        "shell.lua"
-    }
-
-    for _, arquivo in ipairs(
-        arquivos
-    ) do
-
-        local origem =
-            "/cclinux/" ..
-            arquivo
-
-        local destino =
-            fs.combine(
-                pasta,
-                arquivo
-            )
-
-        if fs.exists(origem) then
-
-            fs.copy(
-                origem,
-                destino
-            )
-
-            print(
-                "Copiado: " ..
-                arquivo
-            )
-
-        else
-
-            print(
-                "Nao encontrado: " ..
-                arquivo
-            )
-
-        end
-
-    end
-
-    print()
-
-    print(
-        "CCLinux copiado para o floppy!"
-    )
-
-end
-
-return F

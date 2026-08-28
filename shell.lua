@@ -1,646 +1,324 @@
--- ==========================================
--- CCLinux 1.6 - SHELL
--- ==========================================
+-- ============================================
+-- CCLinux 1.7 - SHELL
+-- ============================================
 
-local nome =
-    ...
+local BASE = "/cclinux"
+local PERSONAL = BASE .. "/pasta pessoal"
 
-if not nome then
-    nome = "Usuario"
-end
+local function obterNome()
+    local label = os.getComputerLabel()
 
-local CCLINUX =
-    "/cclinux"
-
--- ==========================================
--- CARREGAR MODULOS
--- ==========================================
-
-local monitorModule =
-    dofile(
-        CCLINUX ..
-        "/monitor.lua"
-    )
-
-local floppyModule =
-    dofile(
-        CCLINUX ..
-        "/floppy.lua"
-    )
-
-local loginModule =
-    dofile(
-        CCLINUX ..
-        "/login.lua"
-    )
-
--- ==========================================
--- DIRETORIO
--- ==========================================
-
-local currentDir = "/"
-
--- ==========================================
--- PROMPT
--- ==========================================
-
-local function prompt()
-
-    if currentDir == "/" then
-
-        return nome ..
-            ":~$ "
-
-    else
-
-        return nome ..
-            ":~" ..
-            currentDir ..
-            "$ "
-
+    if label and label ~= "" then
+        return label
     end
 
+    return "usuario"
 end
 
--- ==========================================
--- MONITOR + TERMINAL
--- ==========================================
+local nome = obterNome()
 
-local function readCommand()
+-- ============================================
+-- HELP
+-- ============================================
 
-    local texto =
-        prompt()
-
-    -- Prompt aparece imediatamente
-    -- no monitor.
-
-    term.write(texto)
-
-    monitorModule.write(
-        texto
-    )
-
-    -- A pessoa digita normalmente
-    -- no terminal.
-
-    local entrada =
-        read()
-
-    -- Só depois de ENTER a entrada
-    -- aparece no monitor.
-
-    monitorModule.print(
-        entrada
-    )
-
-    return entrada
-
+local function help()
+    print("--------------------------------------")
+    print("           CCLinux 1.7 - HELP")
+    print("--------------------------------------")
+    print("")
+    print("help       - Mostra a lista de comandos")
+    print("ls         - Mostra os arquivos")
+    print("cd NOME    - Entra em uma pasta")
+    print("cd ..      - Volta para a pasta anterior")
+    print("mkdir NOME - Cria uma nova pasta")
+    print("clear      - Limpa o terminal")
+    print("echo TEXTO - Mostra um texto")
+    print("reboot     - Reinicia o computador")
+    print("shutdown   - Desliga o computador")
+    print("password   - Altera a senha")
+    print("resetpessoal - Reinicia a pasta pessoal")
+    print("floppy     - Mostra os comandos do floppy")
+    print("floppy_ls  - Lista os arquivos do floppy")
+    print("floppy_copy - Copia arquivo do floppy")
+    print("install_cclinux - Instala o CCLinux")
+    print("")
+    print("--------------------------------------")
 end
 
--- ==========================================
--- PRINT NOS DOIS
--- ==========================================
+-- ============================================
+-- SENHA
+-- ============================================
 
-local function printBoth(
-    texto
-)
+local function mudarSenha()
 
-    print(texto)
+    local config = PERSONAL .. "/config.txt"
+    local senhaAtual = ""
 
-    monitorModule.print(
-        texto
-    )
+    if fs.exists(config) then
+        local f = fs.open(config, "r")
 
-end
+        while true do
+            local linha = f.readLine()
 
--- ==========================================
--- CLEAR
--- ==========================================
-
-local function clear()
-
-    term.clear()
-    term.setCursorPos(
-        1,
-        1
-    )
-
-    monitorModule.clear()
-
-end
-
--- ==========================================
--- LS
--- ==========================================
-
-local function commandLS()
-
-    local caminho =
-        currentDir
-
-    if caminho == "/" then
-        caminho = ""
-    end
-
-    local arquivos =
-        fs.list(caminho)
-
-    for _, arquivo in ipairs(
-        arquivos
-    ) do
-
-        local caminhoCompleto =
-            fs.combine(
-                caminho,
-                arquivo
-            )
-
-        if fs.isDir(
-            caminhoCompleto
-        ) then
-
-            printBoth(
-                "[DIR] " ..
-                arquivo
-            )
-
-        else
-
-            printBoth(
-                "      " ..
-                arquivo
-            )
-
-        end
-
-    end
-
-end
-
--- ==========================================
--- CD
--- ==========================================
-
-local function commandCD(
-    destino
-)
-
-    if not destino then
-
-        printBoth(
-            "Uso: cd NOME"
-        )
-
-        return
-
-    end
-
-    local novoCaminho
-
-    if destino == ".." then
-
-        if currentDir == "/" then
-
-            novoCaminho = "/"
-
-        else
-
-            novoCaminho =
-                fs.getDir(
-                    currentDir
-                )
-
-            if novoCaminho == "" then
-                novoCaminho = "/"
+            if not linha then
+                break
             end
 
+            local s = string.match(linha, "^senha=(.*)$")
+
+            if s then
+                senhaAtual = s
+            end
         end
 
-    else
-
-        novoCaminho =
-            fs.combine(
-                currentDir,
-                destino
-            )
-
+        f.close()
     end
 
-    if fs.isDir(
-        novoCaminho
-    ) then
+    if senhaAtual ~= "" then
+        write("Senha atual: ")
+        local atual = read("*")
 
-        if novoCaminho == "" then
-            novoCaminho = "/"
+        if atual ~= senhaAtual then
+            print("Senha incorreta.")
+            return
+        end
+    end
+
+    write("Nova senha: ")
+    local nova = read("*")
+
+    local nomeAtual = obterNome()
+
+    local f = fs.open(config, "w")
+    f.writeLine("nome=" .. nomeAtual)
+    f.writeLine("senha=" .. nova)
+    f.close()
+
+    print("Senha alterada.")
+end
+
+-- ============================================
+-- RESET DA PASTA PESSOAL
+-- ============================================
+
+local function resetPessoal()
+
+    print("ATENCAO!")
+    print("Isso vai apagar a pasta pessoal.")
+    write("Digite SIM para continuar: ")
+
+    local resposta = read()
+
+    if resposta ~= "SIM" then
+        print("Cancelado.")
+        return
+    end
+
+    if fs.exists(PERSONAL) then
+        fs.delete(PERSONAL)
+    end
+
+    fs.makeDir(PERSONAL)
+
+    local f = fs.open(PERSONAL .. "/config.txt", "w")
+    f.writeLine("nome=" .. nome)
+    f.writeLine("senha=")
+    f.close()
+
+    print("Pasta pessoal reiniciada.")
+end
+
+-- ============================================
+-- SL - COMANDO ESCONDIDO
+-- ============================================
+
+local function sl()
+
+    term.clear()
+    term.setCursorPos(1, 1)
+
+    local trem = {
+        "      ====        ________",
+        "  _D _|  |_______/        \\",
+        " |   _     |                |",
+        "'-(_)---(_)--(_)------------'"
+    }
+
+    local largura, altura = term.getSize()
+
+    for pos = 1, largura + 5 do
+
+        term.clear()
+
+        for i, linha in ipairs(trem) do
+            local y = math.floor(altura / 2) + i - 2
+
+            if y >= 1 and y <= altura then
+                term.setCursorPos(pos, y)
+                term.write(linha)
+            end
         end
 
-        currentDir =
-            "/" ..
-            fs.combine(
-                "",
-                novoCaminho
-            )
+        sleep(0.06)
+    end
 
-        currentDir =
-            currentDir:gsub(
-                "//",
-                "/"
-            )
+    term.clear()
+end
 
-        if currentDir == "" then
-            currentDir = "/"
+-- ============================================
+-- /DOOM - JOGO MEME
+-- ============================================
+
+local function doom()
+
+    term.clear()
+    term.setCursorPos(1, 1)
+
+    print("======================================")
+    print("             DOOM MEME")
+    print("======================================")
+    print("")
+    print("Voce entrou no DOOM secreto.")
+    print("")
+    print("[1] Atacar")
+    print("[2] Procurar")
+    print("[3] Sair")
+    print("")
+
+    while true do
+
+        write("> ")
+        local escolha = read()
+
+        if escolha == "1" then
+            print("BANG! Voce derrotou um inimigo imaginario.")
+            print("")
+
+        elseif escolha == "2" then
+            print("Voce encontrou uma sala secreta.")
+            print("")
+
+        elseif escolha == "3" then
+            break
+
+        else
+            print("Comando desconhecido.")
         end
-
-    else
-
-        printBoth(
-            "Diretorio nao encontrado."
-        )
-
     end
 
+    term.clear()
 end
 
--- ==========================================
--- MKDIR
--- ==========================================
-
-local function commandMkdir(
-    nomePasta
-)
-
-    if not nomePasta then
-
-        printBoth(
-            "Uso: mkdir NOME"
-        )
-
-        return
-
-    end
-
-    local caminho =
-        fs.combine(
-            currentDir,
-            nomePasta
-        )
-
-    if fs.exists(caminho) then
-
-        printBoth(
-            "Esse arquivo ou pasta ja existe."
-        )
-
-        return
-
-    end
-
-    fs.makeDir(caminho)
-
-    printBoth(
-        "Pasta criada: " ..
-        nomePasta
-    )
-
-end
-
--- ==========================================
--- ECHO
--- ==========================================
-
-local function commandEcho(
-    comando
-)
-
-    local texto =
-        comando:sub(6)
-
-    printBoth(texto)
-
-end
-
--- ==========================================
--- HELP
--- ==========================================
-
-local function commandHelp()
-
-    printBoth("")
-    printBoth("CCLinux 1.6 - Comandos")
-    printBoth("-----------------------")
-    printBoth("help")
-    printBoth("ls")
-    printBoth("cd NOME")
-    printBoth("cd ..")
-    printBoth("mkdir NOME")
-    printBoth("clear")
-    printBoth("echo TEXTO")
-    printBoth("reboot")
-    printBoth("shutdown")
-    printBoth("passwd")
-    printBoth("resetpessoal")
-    printBoth("")
-    printBoth("floppy")
-    printBoth("floppy_ls")
-    printBoth("floppy_copy ARQUIVO")
-    printBoth("instalar_cclinux")
-    printBoth("")
-
-end
-
--- ==========================================
--- SENHA
--- ==========================================
-
-local function commandPasswd()
-
-    local arquivo =
-        fs.open(
-            "/pasta pessoal/codigo",
-            "r"
-        )
-
-    if not arquivo then
-
-        printBoth(
-            "Codigo nao encontrado."
-        )
-
-        return
-
-    end
-
-    local atualCorreto =
-        arquivo.readAll()
-
-    arquivo.close()
-
-    term.write(
-        "Codigo atual: "
-    )
-
-    local atual =
-        read("*")
-
-    if atual ~= atualCorreto then
-
-        printBoth(
-            "Codigo incorreto."
-        )
-
-        return
-
-    end
-
-    term.write(
-        "Novo codigo: "
-    )
-
-    local novo1 =
-        read("*")
-
-    term.write(
-        "Confirme: "
-    )
-
-    local novo2 =
-        read("*")
-
-    if novo1 == "" then
-
-        printBoth(
-            "O codigo nao pode estar vazio."
-        )
-
-        return
-
-    end
-
-    if novo1 ~= novo2 then
-
-        printBoth(
-            "Os codigos nao sao iguais."
-        )
-
-        return
-
-    end
-
-    local novoArquivo =
-        fs.open(
-            "/pasta pessoal/codigo",
-            "w"
-        )
-
-    novoArquivo.write(
-        novo1
-    )
-
-    novoArquivo.close()
-
-    printBoth(
-        "Codigo alterado!"
-    )
-
-end
-
--- ==========================================
--- EXECUTAR COMANDOS
--- ==========================================
+-- ============================================
+-- LOOP PRINCIPAL
+-- ============================================
 
 while true do
 
-    local comando =
-        readCommand()
+    write(nome .. ":~$ ")
 
-    local args = {}
+    local entrada = read()
 
-    for palavra in string.gmatch(
-        comando,
-        "%S+"
-    ) do
+    if entrada == "" then
 
-        table.insert(
-            args,
-            palavra
-        )
+    elseif entrada == "help" then
+        help()
 
-    end
+    elseif entrada == "ls" then
 
-    local cmd =
-        args[1]
+        local diretorio = shell.dir()
+        local arquivos = fs.list(diretorio)
 
-    -- ======================================
-    -- HELP
-    -- ======================================
+        for _, arquivo in ipairs(arquivos) do
+            print(arquivo)
+        end
 
-    if cmd == "help" then
+    elseif string.sub(entrada, 1, 3) == "cd " then
 
-        commandHelp()
+        local destino = string.sub(entrada, 4)
 
-    -- ======================================
-    -- LS
-    -- ======================================
+        if fs.exists(destino) and fs.isDir(destino) then
+            shell.setDir(destino)
+        else
+            print("Pasta nao encontrada.")
+        end
 
-    elseif cmd == "ls" then
+    elseif string.sub(entrada, 1, 6) == "mkdir " then
 
-        commandLS()
+        local pasta = string.sub(entrada, 7)
 
-    -- ======================================
-    -- CD
-    -- ======================================
+        if fs.exists(pasta) then
+            print("Essa pasta ja existe.")
+        else
+            fs.makeDir(pasta)
+            print("Pasta criada.")
+        end
 
-    elseif cmd == "cd" then
+    elseif entrada == "clear" then
 
-        commandCD(
-            args[2]
-        )
+        term.clear()
+        term.setCursorPos(1, 1)
 
-    -- ======================================
-    -- MKDIR
-    -- ======================================
+    elseif string.sub(entrada, 1, 5) == "echo " then
 
-    elseif cmd == "mkdir" then
+        print(string.sub(entrada, 6))
 
-        commandMkdir(
-            args[2]
-        )
-
-    -- ======================================
-    -- CLEAR
-    -- ======================================
-
-    elseif cmd == "clear" then
-
-        clear()
-
-    -- ======================================
-    -- ECHO
-    -- ======================================
-
-    elseif cmd == "echo" then
-
-        commandEcho(
-            comando
-        )
-
-    -- ======================================
-    -- REBOOT
-    -- ======================================
-
-    elseif cmd == "reboot" then
-
-        printBoth(
-            "Reiniciando..."
-        )
-
-        monitorModule.beep(
-            8,
-            0.7
-        )
-
-        sleep(1)
+    elseif entrada == "reboot" then
 
         os.reboot()
 
-    -- ======================================
-    -- SHUTDOWN
-    -- ======================================
-
-    elseif cmd == "shutdown" then
-
-        printBoth(
-            "Desligando..."
-        )
-
-        monitorModule.beep(
-            5,
-            0.7
-        )
-
-        sleep(1)
+    elseif entrada == "shutdown" then
 
         os.shutdown()
 
-    -- ======================================
-    -- PASSWORD
-    -- ======================================
+    elseif entrada == "password" then
 
-    elseif cmd == "passwd" then
+        mudarSenha()
 
-        commandPasswd()
+    elseif entrada == "resetpessoal" then
 
-    -- ======================================
-    -- RESET PESSOAL
-    -- ======================================
+        resetPessoal()
 
-    elseif cmd == "resetpessoal" then
+    elseif entrada == "floppy" then
 
-        loginModule.reset()
+        shell.run(BASE .. "/floppy.lua")
 
-    -- ======================================
-    -- FLOPPY
-    -- ======================================
+    elseif entrada == "floppy_ls" then
 
-    elseif cmd == "floppy" then
+        shell.run(BASE .. "/floppy.lua", "ls")
 
-        floppyModule.info()
+    elseif string.sub(entrada, 1, 12) == "floppy_copy " then
 
-    -- ======================================
-    -- FLOPPY LS
-    -- ======================================
+        local resto = string.sub(entrada, 13)
+        local arquivo, destino = string.match(resto, "^(%S+)%s+(.+)$")
 
-    elseif cmd == "floppy_ls" then
+        if arquivo and destino then
+            shell.run(BASE .. "/floppy.lua", "copy", arquivo, destino)
+        else
+            print("Uso: floppy_copy ARQUIVO DESTINO")
+        end
 
-        floppyModule.list()
+    elseif entrada == "install_cclinux" then
 
-    -- ======================================
-    -- FLOPPY COPY
-    -- ======================================
+        print("Para instalar o CCLinux pelo GitHub, use o instalador.")
+        print("")
 
-    elseif cmd == "floppy_copy" then
+    -- ========================================
+    -- COMANDOS ESCONDIDOS
+    -- ========================================
 
-        floppyModule.copyToFloppy(
-            args[2]
-        )
+    elseif entrada == "sl" then
 
-    -- ======================================
-    -- INSTALAR CCLINUX
-    -- ======================================
+        sl()
 
-    elseif cmd == "instalar_cclinux" then
+    elseif entrada == "/doom" then
 
-        floppyModule.install()
-
-    -- ======================================
-    -- EXIT
-    -- ======================================
-
-    elseif cmd == "exit" then
-
-        printBoth(
-            "Use shutdown para desligar."
-        )
-
-    -- ======================================
-    -- COMANDO VAZIO
-    -- ======================================
-
-    elseif cmd == "" then
-
-        -- Não faz nada.
-
-    -- ======================================
-    -- COMANDO DESCONHECIDO
-    -- ======================================
+        doom()
 
     else
 
-        printBoth(
-            "Comando nao encontrado: " ..
-            tostring(cmd)
-        )
+        print("Comando nao encontrado: " .. entrada)
+        print("Digite help para ver os comandos.")
 
     end
-
 end
