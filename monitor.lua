@@ -4,53 +4,96 @@
 
 local monitor = peripheral.find("monitor")
 
--- Se nao houver monitor, termina silenciosamente
+-- Se nao houver monitor, nao faz nada.
 if not monitor then
     return
 end
 
--- Configura o monitor SOMENTE quando inicia
-monitor.setTextScale(1)
-
-local largura, altura = monitor.getSize()
-
 monitor.setBackgroundColor(colors.black)
 monitor.setTextColor(colors.white)
+
+-- --------------------------------------------
+-- TAMANHO AUTOMATICO
+-- --------------------------------------------
+
+local largura, altura =
+    monitor.getSize()
+
+local escala = 1
+
+if largura >= 80 then
+    escala = 1.5
+elseif largura >= 50 then
+    escala = 1
+elseif largura >= 30 then
+    escala = 0.5
+else
+    escala = 1
+end
+
+monitor.setTextScale(escala)
+
 monitor.clear()
+monitor.setCursorPos(1, 1)
 
--- Centraliza texto
-local function centralizar(texto, y)
-    local x = math.floor((largura - #texto) / 2) + 1
+-- --------------------------------------------
+-- FUNCAO DE LIMPEZA
+-- --------------------------------------------
 
-    if x < 1 then
-        x = 1
-    end
+local function limpar()
+    monitor.clear()
+    monitor.setCursorPos(1, 1)
+end
 
-    monitor.setCursorPos(x, y)
+-- --------------------------------------------
+-- TELA DO MONITOR
+-- --------------------------------------------
+
+local w, h =
+    monitor.getSize()
+
+local titulo = "CCLinux 1.7"
+
+local x =
+    math.max(
+        1,
+        math.floor(
+            (w - #titulo) / 2
+        ) + 1
+    )
+
+monitor.setCursorPos(x, 1)
+monitor.write(titulo)
+
+if h >= 3 then
+    monitor.setCursorPos(1, 3)
+    monitor.write(
+        string.rep("-", w)
+    )
+end
+
+if h >= 5 then
+
+    local texto =
+        "Terminal pronto."
+
+    local tx =
+        math.max(
+            1,
+            math.floor(
+                (w - #texto) / 2
+            ) + 1
+        )
+
+    monitor.setCursorPos(tx, 5)
     monitor.write(texto)
 end
 
-centralizar("CCLinux 1.7", 1)
+-- --------------------------------------------
+-- O MONITOR FICA PARADO
+-- --------------------------------------------
+-- O shell escreve nele quando necessario.
 
-if altura >= 3 then
-    monitor.setCursorPos(1, 3)
-    monitor.write(string.rep("-", largura))
-end
-
-if altura >= 5 then
-    centralizar("MONITOR ONLINE", 5)
-end
-
-if altura >= 7 then
-    centralizar("Sistema operacional", 7)
-end
-
-if altura >= 9 then
-    centralizar("Monitor detectado", 9)
-end
-
--- Mantem o monitor ativo.
--- Ele nao interfere no teclado/terminal.
 while true do
     sleep(60)
 end

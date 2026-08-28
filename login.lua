@@ -10,22 +10,38 @@ if not fs.exists(PERSONAL) then
     fs.makeDir(PERSONAL)
 end
 
--- Le configuracao
 local nome = nil
 local senha = nil
 
+-- --------------------------------------------
+-- LER CONFIG
+-- --------------------------------------------
+
 if fs.exists(CONFIG) then
-    local f = fs.open(CONFIG, "r")
+
+    local f =
+        fs.open(CONFIG, "r")
 
     while true do
-        local linha = f.readLine()
+
+        local linha =
+            f.readLine()
 
         if not linha then
             break
         end
 
-        local n = string.match(linha, "^nome=(.*)$")
-        local s = string.match(linha, "^senha=(.*)$")
+        local n =
+            string.match(
+                linha,
+                "^nome=(.*)$"
+            )
+
+        local s =
+            string.match(
+                linha,
+                "^senha=(.*)$"
+            )
 
         if n then
             nome = n
@@ -39,20 +55,21 @@ if fs.exists(CONFIG) then
     f.close()
 end
 
--- Primeira inicializacao
+-- --------------------------------------------
+-- PRIMEIRA VEZ
+-- --------------------------------------------
+
 if not nome or nome == "" or nome == "usuario" then
 
     term.clear()
     term.setCursorPos(1, 1)
 
     print("======================================")
-    print("            INICIALIZACAO")
+    print("           CONFIGURACAO")
     print("======================================")
     print("")
-    print("Vamos configurar sua conta.")
-    print("")
 
-    write("Digite seu nome: ")
+    write("Nome: ")
     nome = read()
 
     if nome == "" then
@@ -60,24 +77,31 @@ if not nome or nome == "" or nome == "usuario" then
     end
 
     print("")
-    write("Digite uma senha: ")
+
+    write("Codigo: ")
     senha = read("*")
 
-    local f = fs.open(CONFIG, "w")
+    local f =
+        fs.open(CONFIG, "w")
+
     f.writeLine("nome=" .. nome)
     f.writeLine("senha=" .. senha)
+
     f.close()
 
     os.setComputerLabel(nome)
 
     print("")
-    print("Conta criada!")
+    print("Configuracao concluida!")
     sleep(1)
 
     return
 end
 
--- Login
+-- --------------------------------------------
+-- LOGIN
+-- --------------------------------------------
+
 term.clear()
 term.setCursorPos(1, 1)
 
@@ -88,15 +112,19 @@ print("")
 print("Usuario: " .. nome)
 print("")
 
-if senha and senha ~= "" then
+if senha ~= "" then
 
-    write("Senha: ")
-    local tentativa = read("*")
+    write("Codigo: ")
+
+    local tentativa =
+        read("*")
 
     if tentativa ~= senha then
+
         print("")
-        print("Senha incorreta.")
+        print("Codigo incorreto.")
         sleep(2)
+
         os.reboot()
     end
 end
