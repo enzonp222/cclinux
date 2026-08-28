@@ -189,5 +189,3 @@ if not fs.exists("/cclinux/kernel.lua") then
 
     return
 end
-
-shell.run("/cclinux/kernel.lua")
