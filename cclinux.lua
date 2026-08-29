@@ -470,64 +470,64 @@ commands["gravarinstalador"] = function(args)
     printColor("gravarinstalador: coloque um disquete na unidade primeiro", colors.red)
     return
   end
-  if not fs.exists("cclinux.lua") or not fs.exists("startup.lua") then
-    printColor("gravarinstalador: cclinux.lua ou startup.lua nao encontrados neste computador", colors.red)
+  if not http then
+    printColor("gravarinstalador: a API http esta desativada neste servidor", colors.red)
     return
   end
 
   local mount = disk.getMountPath(side)
-
-  -- limpa versoes antigas no disco, se existirem
-  for _, name in ipairs({ "cclinux.lua", "os_startup.lua", "startup.lua" }) do
-    local p = fs.combine(mount, name)
-    if fs.exists(p) then fs.delete(p) end
-  end
-
-  -- copia o shell e o boot loader do CCLinux pro disco
-  fs.copy("cclinux.lua", fs.combine(mount, "cclinux.lua"))
-  fs.copy("startup.lua", fs.combine(mount, "os_startup.lua"))
+  local installerPath = fs.combine(mount, "startup.lua")
+  if fs.exists(installerPath) then fs.delete(installerPath) end
 
   -- este e o script que roda SOZINHO quando o disquete for
-  -- colocado num computador que ainda nao tem startup.lua
+  -- colocado num computador que ainda nao tem startup.lua.
+  -- ele baixa o CCLinux direto do GitHub via http, entao
+  -- sempre pega a versao mais atual.
   local installerCode = [[
+local STARTUP_URL = "https://raw.githubusercontent.com/enzonp222/cclinux/refs/heads/main/startup.lua"
+local CCLINUX_URL = "https://raw.githubusercontent.com/enzonp222/cclinux/refs/heads/main/cclinux.lua"
+
 term.setBackgroundColor(colors.black)
 term.clear()
 term.setCursorPos(1, 1)
-print("Instalando CCLinux a partir do disquete...")
+print("Instalando CCLinux pela internet...")
 
-local mountPath = nil
-for _, side in ipairs(peripheral.getNames()) do
-  if peripheral.getType(side) == "drive" and disk.isPresent(side) then
-    local p = disk.getMountPath(side)
-    if fs.exists(fs.combine(p, "cclinux.lua")) and fs.exists(fs.combine(p, "os_startup.lua")) then
-      mountPath = p
-      break
-    end
+local function baixar(url, caminho)
+  local ok, response = pcall(http.get, url)
+  if not ok or not response then
+    print("Falha ao baixar: " .. url)
+    return false
   end
+  local conteudo = response.readAll()
+  response.close()
+  if fs.exists(caminho) then fs.delete(caminho) end
+  local f = fs.open(caminho, "w")
+  f.write(conteudo)
+  f.close()
+  return true
 end
 
-if not mountPath then
-  print("Erro: disquete de instalacao nao encontrado.")
-  return
+local ok1 = baixar(STARTUP_URL, "startup.lua")
+local ok2 = baixar(CCLINUX_URL, "cclinux.lua")
+
+if ok1 and ok2 then
+  print("CCLinux instalado com sucesso! Reiniciando...")
+  sleep(1)
+  os.reboot()
+else
+  print("Erro na instalacao. Verifique se a API http esta ativada no servidor.")
 end
-
-fs.copy(fs.combine(mountPath, "cclinux.lua"), "cclinux.lua")
-fs.copy(fs.combine(mountPath, "os_startup.lua"), "startup.lua")
-
-print("CCLinux instalado com sucesso! Reiniciando...")
-sleep(1)
-os.reboot()
 ]]
 
-  local f = fs.open(fs.combine(mount, "startup.lua"), "w")
+  local f = fs.open(installerPath, "w")
   f.write(installerCode)
   f.close()
 
   pcall(function() disk.setLabel(side, "CCLinux Installer") end)
 
-  printColor("Disquete de instalacao criado com sucesso!", colors.lime)
+  printColor("Disquete de instalacao (via internet) criado com sucesso!", colors.lime)
   print("Tire o disquete e coloque em outro computador sem CCLinux.")
-  print("Ele vai instalar e reiniciar sozinho.")
+  print("Ele vai baixar e instalar sozinho (precisa da API http ativada).")
   playNote("pling", 18)
 end
 
