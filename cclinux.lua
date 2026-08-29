@@ -487,6 +487,15 @@ commands["gravarinstalador"] = function(args)
 local STARTUP_URL = "https://raw.githubusercontent.com/enzonp222/cclinux/refs/heads/main/startup.lua"
 local CCLINUX_URL = "https://raw.githubusercontent.com/enzonp222/cclinux/refs/heads/main/cclinux.lua"
 
+-- o CC:Tweaked roda o startup.lua do disquete TODA VEZ que o
+-- computador liga (nao so quando ele nao tem startup proprio).
+-- por isso, se o CCLinux ja estiver instalado aqui, nao faz
+-- nada -- so deixa o boot normal continuar, sem reinstalar
+-- nem reiniciar de novo (evita o loop infinito).
+if fs.exists("cclinux.lua") and fs.exists("startup.lua") then
+  return
+end
+
 term.setBackgroundColor(colors.black)
 term.clear()
 term.setCursorPos(1, 1)
