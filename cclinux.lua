@@ -106,12 +106,31 @@ local function printColor(text, color)
   monWrite(text, color)
 end
 
+-- ===== Suporte a speaker externo (opcional) =====
+-- Assim como o monitor, o speaker so e verificado uma
+-- unica vez, na inicializacao. Se nao houver um conectado,
+-- o CCLinux funciona normalmente sem tocar nenhum som.
+local speaker = nil
+
+for _, side in ipairs(peripheral.getNames()) do
+  if peripheral.getType(side) == "speaker" then
+    speaker = peripheral.wrap(side)
+    break
+  end
+end
+
+local function playNote(instrument, pitch, volume)
+  if not speaker then return end
+  pcall(function()
+    speaker.playNote(instrument or "pling", volume or 1, pitch or 12)
+  end)
+end
+
 local commands = {}
 
 commands["help"] = function(args)
   local list = {
     "ls [path]      - lista arquivos",
-    "sl             - ??? (tente digitar errado 'ls')",
     "cd <path>      - muda de diretorio",
     "pwd            - mostra diretorio atual",
     "cat <file>     - mostra conteudo do arquivo",
@@ -128,6 +147,10 @@ commands["help"] = function(args)
     "neofetch       - resumo do sistema",
     "history        - mostra historico de comandos",
     "edit <file>    - edita um arquivo",
+    "disco          - mostra unidades de disco conectadas",
+    "ejetar [lado]  - ejeta o disquete da unidade",
+    "gravarinstalador - grava um disquete auto-instalavel",
+    "beep [nota]    - toca um som no speaker (se houver)",
     "reboot         - reinicia o computador",
     "shutdown       - desliga o computador",
     "exit           - sai do CCLinux para o CraftOS",
@@ -395,6 +418,128 @@ commands["edit"] = function(args)
   end
 end
 
+commands["disco"] = function(args)
+  local found = false
+  for _, side in ipairs(peripheral.getNames()) do
+    if peripheral.getType(side) == "drive" then
+      found = true
+      if disk.isPresent(side) then
+        local label = disk.getLabel(side) or "sem nome"
+        local mount = disk.getMountPath(side)
+        local free = "?"
+        pcall(function() free = tostring(fs.getFreeSpace(mount)) end)
+        print(side .. ": disco '" .. label .. "' em /" .. mount .. " (livre: " .. free .. ")")
+      else
+        print(side .. ": unidade vazia")
+      end
+    end
+  end
+  if not found then
+    printColor("disco: nenhuma unidade de disco (disk drive) conectada", colors.red)
+  end
+end
+
+commands["ejetar"] = function(args)
+  local side = args[1]
+  if not side then
+    for _, s in ipairs(peripheral.getNames()) do
+      if peripheral.getType(s) == "drive" and disk.isPresent(s) then
+        side = s
+        break
+      end
+    end
+  end
+  if not side then
+    printColor("ejetar: nenhum disquete encontrado para ejetar", colors.red)
+    return
+  end
+  disk.eject(side)
+  printColor("Disquete ejetado.", colors.yellow)
+  playNote("bass", 8)
+end
+
+commands["gravarinstalador"] = function(args)
+  local side = nil
+  for _, s in ipairs(peripheral.getNames()) do
+    if peripheral.getType(s) == "drive" and disk.isPresent(s) then
+      side = s
+      break
+    end
+  end
+  if not side then
+    printColor("gravarinstalador: coloque um disquete na unidade primeiro", colors.red)
+    return
+  end
+  if not fs.exists("cclinux.lua") or not fs.exists("startup.lua") then
+    printColor("gravarinstalador: cclinux.lua ou startup.lua nao encontrados neste computador", colors.red)
+    return
+  end
+
+  local mount = disk.getMountPath(side)
+
+  -- limpa versoes antigas no disco, se existirem
+  for _, name in ipairs({ "cclinux.lua", "os_startup.lua", "startup.lua" }) do
+    local p = fs.combine(mount, name)
+    if fs.exists(p) then fs.delete(p) end
+  end
+
+  -- copia o shell e o boot loader do CCLinux pro disco
+  fs.copy("cclinux.lua", fs.combine(mount, "cclinux.lua"))
+  fs.copy("startup.lua", fs.combine(mount, "os_startup.lua"))
+
+  -- este e o script que roda SOZINHO quando o disquete for
+  -- colocado num computador que ainda nao tem startup.lua
+  local installerCode = [[
+term.setBackgroundColor(colors.black)
+term.clear()
+term.setCursorPos(1, 1)
+print("Instalando CCLinux a partir do disquete...")
+
+local mountPath = nil
+for _, side in ipairs(peripheral.getNames()) do
+  if peripheral.getType(side) == "drive" and disk.isPresent(side) then
+    local p = disk.getMountPath(side)
+    if fs.exists(fs.combine(p, "cclinux.lua")) and fs.exists(fs.combine(p, "os_startup.lua")) then
+      mountPath = p
+      break
+    end
+  end
+end
+
+if not mountPath then
+  print("Erro: disquete de instalacao nao encontrado.")
+  return
+end
+
+fs.copy(fs.combine(mountPath, "cclinux.lua"), "cclinux.lua")
+fs.copy(fs.combine(mountPath, "os_startup.lua"), "startup.lua")
+
+print("CCLinux instalado com sucesso! Reiniciando...")
+sleep(1)
+os.reboot()
+]]
+
+  local f = fs.open(fs.combine(mount, "startup.lua"), "w")
+  f.write(installerCode)
+  f.close()
+
+  pcall(function() disk.setLabel(side, "CCLinux Installer") end)
+
+  printColor("Disquete de instalacao criado com sucesso!", colors.lime)
+  print("Tire o disquete e coloque em outro computador sem CCLinux.")
+  print("Ele vai instalar e reiniciar sozinho.")
+  playNote("pling", 18)
+end
+
+commands["beep"] = function(args)
+  if not speaker then
+    printColor("beep: nenhum speaker conectado", colors.red)
+    return
+  end
+  playNote(args[1], tonumber(args[2]))
+  print("Bip!")
+end
+
 commands["reboot"] = function(args)
   os.reboot()
 end
@@ -421,6 +566,7 @@ end
 term.setBackgroundColor(colors.black)
 term.setTextColor(colors.white)
 printColor("Bem-vindo ao CCLinux " .. VERSION .. "! Digite 'help' para ver os comandos.", colors.yellow)
+playNote("harp", 12)
 
 while running do
   local promptText = "root@cclinux:" .. prettyPath(currentDir) .. "$ "
@@ -447,6 +593,7 @@ while running do
       end
     else
       printColor(cmd .. ": comando nao encontrado", colors.red)
+      playNote("bass", 4)
     end
   end
 end
