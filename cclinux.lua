@@ -24,12 +24,86 @@ local function prettyPath(path)
   return "/" .. path
 end
 
+-- ===== Suporte a monitor externo (opcional) =====
+-- Se houver um monitor conectado, o CCLinux espelha nele
+-- tudo que aparece no terminal. Se nao houver, o sistema
+-- funciona normalmente sem erro nenhum.
+local monitor = nil
+local monY = 1
+
+-- verifica todas as conexoes do computador uma unica vez,
+-- na inicializacao, procurando por um monitor conectado
+for _, side in ipairs(peripheral.getNames()) do
+  if peripheral.getType(side) == "monitor" then
+    monitor = peripheral.wrap(side)
+    break
+  end
+end
+
+if monitor then
+  pcall(function()
+    monitor.setTextScale(0.5)
+  end)
+  monitor.setBackgroundColor(colors.black)
+  monitor.clear()
+  monitor.setCursorPos(1, 1)
+  monY = 1
+end
+
+local function monWrite(text, color)
+  if not monitor then return end
+  local mw, mh = monitor.getSize()
+  text = tostring(text)
+
+  local ok = pcall(function()
+    if color and monitor.isColor and monitor.isColor() then
+      monitor.setTextColor(color)
+    end
+  end)
+
+  -- quebra o texto em varias linhas se for maior que a largura do monitor
+  repeat
+    local chunk = text:sub(1, mw)
+    text = text:sub(mw + 1)
+
+    monitor.setCursorPos(1, monY)
+    monitor.clearLine()
+    monitor.write(chunk)
+
+    monY = monY + 1
+    if monY > mh then
+      monitor.scroll(1)
+      monY = mh
+    end
+  until #text == 0
+
+  pcall(function()
+    if monitor.isColor and monitor.isColor() then
+      monitor.setTextColor(colors.white)
+    end
+  end)
+end
+
+-- Sombreia o "print" nativo: tudo que o sistema imprime no
+-- terminal tambem aparece no monitor (se existir um conectado)
+local nativePrint = print
+local function print(...)
+  nativePrint(...)
+  local n = select("#", ...)
+  local parts = {}
+  for i = 1, n do
+    parts[i] = tostring((select(i, ...)))
+  end
+  monWrite(table.concat(parts, " "))
+end
+
 local function printColor(text, color)
   if term.isColor and term.isColor() then
     term.setTextColor(color)
   end
-  print(text)
+  nativePrint(text)
   term.setTextColor(colors.white)
+  monWrite(text, color)
 end
 
 local commands = {}
@@ -106,12 +180,13 @@ commands["sl"] = function(args)
     trainWidth = math.max(trainWidth, #line)
   end
 
-  local startY = math.max(1, math.floor(h / 2) - #train)
-  local oldBg = colors.black
+  -- limpa a tela inteira e centraliza o trem verticalmente no meio
+  term.setBackgroundColor(colors.black)
+  term.clear()
+  local startY = math.max(1, math.floor((h - #train) / 2) + 1)
 
   local x = w + 1
   while x > -trainWidth do
-    term.setCursorPos(1, startY)
     for i = 1, #train do
       term.setCursorPos(1, startY + i - 1)
       term.clearLine()
@@ -127,11 +202,10 @@ commands["sl"] = function(args)
     x = x - 2
   end
 
-  for i = 1, #train do
-    term.setCursorPos(1, startY + i - 1)
-    term.clearLine()
-  end
-  term.setCursorPos(1, startY)
+  -- limpa tudo de novo no final, deixando a tela limpa
+  term.setBackgroundColor(colors.black)
+  term.clear()
+  term.setCursorPos(1, 1)
 end
 
 commands["cd"] = function(args)
@@ -331,6 +405,9 @@ end
 
 commands["exit"] = function(args)
   running = false
+  printColor("Desligando o computador...", colors.yellow)
+  sleep(0.5)
+  os.shutdown()
 end
 
 local function parseLine(line)
@@ -346,13 +423,19 @@ term.setTextColor(colors.white)
 printColor("Bem-vindo ao CCLinux " .. VERSION .. "! Digite 'help' para ver os comandos.", colors.yellow)
 
 while running do
+  local promptText = "root@cclinux:" .. prettyPath(currentDir) .. "$ "
+
   if term.isColor and term.isColor() then
     term.setTextColor(colors.lime)
   end
-  term.write("root@cclinux:" .. prettyPath(currentDir) .. "$ ")
+  term.write(promptText)
   term.setTextColor(colors.white)
 
+  -- o monitor (se existir) so recebe o prompt + comando
+  -- DEPOIS que o jogador aperta Enter, nao tecla por tecla
   local line = read()
+  monWrite(promptText .. (line or ""))
+
   if line and line ~= "" then
     table.insert(history, line)
     local words = parseLine(line)
@@ -366,10 +449,4 @@ while running do
       printColor(cmd .. ": comando nao encontrado", colors.red)
     end
   end
-end
-
-term.setTextColor(colors.white)
-print("Saindo do CCLinux...")
-if shell then
-  shell.run("shell")
 end
