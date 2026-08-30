@@ -227,51 +227,42 @@ end
 local ownerName = fazerLogin()
 
 -- ===== Tela de boas-vindas =====
--- Aparece toda vez, logo depois do login, antes do shell
+-- Aparece toda vez, logo depois do login, e fica na tela
+-- (nao some sozinha, o shell continua embaixo dela)
 local function telaBoasVindas(nome)
-  local w, h = term.getSize()
+  local w = select(1, term.getSize())
+  local linha = string.rep("=", w)
 
-  local logo = {
-    " _____ _____ _      _                  ",
-    "|  ___/ ____| |    (_)                 ",
-    "| |  | |     | |     _ _ __  _   ___  _",
-    "| |  | |     | |    | | '_ \\| | | \\ \\/ ",
-    "| |__| |____ | |____| | | | | |_| |>  <",
-    "|_____\\_____||______|_|_| |_|\\__,_/_/\\_\\",
-  }
-
-  local function centerText(y, text, color)
+  local function centerText(text, color)
     local x = math.max(1, math.floor((w - #text) / 2) + 1)
-    term.setCursorPos(x, y)
+    term.setCursorPos(x, ({ term.getCursorPos() })[2])
     if term.isColor and term.isColor() and color then
       term.setTextColor(color)
     end
     term.write(text)
     term.setTextColor(colors.white)
+    monWrite(text, color)
   end
-
-  term.setBackgroundColor(colors.black)
-  term.clear()
-
-  local startY = math.max(1, math.floor(h / 2) - 5)
-  for i, line in ipairs(logo) do
-    centerText(startY + i - 1, line, colors.lime)
-  end
-
-  centerText(startY + #logo + 1, "Bem-vindo, " .. nome .. "!", colors.white)
-  centerText(startY + #logo + 2, "CCLinux " .. VERSION, colors.gray)
-
-  monWrite("Bem-vindo, " .. nome .. "! (CCLinux " .. VERSION .. ")")
-  playNote("harp", 12)
-
-  sleep(1.5)
 
   term.setBackgroundColor(colors.black)
   term.clear()
   term.setCursorPos(1, 1)
+
+  printColor(linha, colors.white)
+  centerText("CCLinux " .. VERSION, colors.white)
+  print("")
+  printColor(linha, colors.white)
+  print("")
+  print("Bem-vindo ao CCLinux!")
+  print("feito por enzo")
+  print("")
+
+  playNote("harp", 12)
 end
 
 telaBoasVindas(ownerName)
+
+
 
 -- ===== Calculadora =====
 -- Interpretador de expressoes matematicas simples,
@@ -751,7 +742,13 @@ local CCLINUX_URL = "https://raw.githubusercontent.com/enzonp222/cclinux/refs/he
 -- por isso, se o CCLinux ja estiver instalado aqui, nao faz
 -- nada -- so deixa o boot normal continuar, sem reinstalar
 -- nem reiniciar de novo (evita o loop infinito).
+-- o disquete tem PRIORIDADE sobre o startup.lua local quando
+-- esta inserido (assim funciona o boot do CC:Tweaked), entao
+-- so dar "return" aqui faria o computador cair no CraftOS
+-- puro. Por isso, se ja estiver instalado, chamamos o
+-- startup.lua local na mao pra realmente abrir o CCLinux.
 if fs.exists("cclinux.lua") and fs.exists("startup.lua") then
+  dofile("startup.lua")
   return
 end
 
@@ -930,7 +927,6 @@ end
 
 term.setBackgroundColor(colors.black)
 term.setTextColor(colors.white)
-printColor("Digite 'help' para ver os comandos.", colors.yellow)
 
 while running do
   local promptText = ownerName .. ":" .. prettyPath(currentDir) .. "$ "
