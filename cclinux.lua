@@ -126,6 +126,261 @@ local function playNote(instrument, pitch, volume)
   end)
 end
 
+-- ===== Suporte a impressora externa (opcional) =====
+-- Mesmo padrao do monitor e do speaker: verificada uma
+-- unica vez, na inicializacao.
+local printerDevice = nil
+
+for _, side in ipairs(peripheral.getNames()) do
+  if peripheral.getType(side) == "printer" then
+    printerDevice = peripheral.wrap(side)
+    break
+  end
+end
+
+-- ===== Sistema de login (dono do computador) =====
+-- Na primeira vez que o CCLinux inicia, ele pede o nome do
+-- dono e uma senha (opcional, mascarada com *) e guarda tudo
+-- numa pasta oculta (".conta") que so o computador usa.
+-- Nas proximas vezes, ele so pede a senha (se tiver uma).
+local ACCOUNT_DIR = ".conta"
+local NOME_FILE = fs.combine(ACCOUNT_DIR, "nome")
+local SENHA_FILE = fs.combine(ACCOUNT_DIR, "senha")
+
+local function lerArquivoConta(path)
+  if not fs.exists(path) then return nil end
+  local f = fs.open(path, "r")
+  local content = f.readAll()
+  f.close()
+  return content
+end
+
+local function escreverArquivoConta(path, content)
+  local f = fs.open(path, "w")
+  f.write(content)
+  f.close()
+end
+
+local function configurarConta()
+  term.setBackgroundColor(colors.black)
+  term.clear()
+  term.setCursorPos(1, 1)
+  printColor("Bem-vindo ao CCLinux! Vamos configurar sua conta.", colors.yellow)
+
+  term.write("Nome do dono deste computador: ")
+  local nome = read()
+  while not nome or nome == "" do
+    printColor("O nome nao pode ficar em branco.", colors.red)
+    term.write("Nome do dono deste computador: ")
+    nome = read()
+  end
+
+  term.write("Senha (opcional, deixe em branco se nao quiser): ")
+  local senha = read("*")
+
+  if not fs.exists(ACCOUNT_DIR) then
+    fs.makeDir(ACCOUNT_DIR)
+  end
+  escreverArquivoConta(NOME_FILE, nome)
+  if senha and senha ~= "" then
+    escreverArquivoConta(SENHA_FILE, senha)
+  end
+
+  printColor("Conta configurada! Iniciando o CCLinux...", colors.lime)
+  sleep(1)
+  return nome
+end
+
+local function fazerLogin()
+  local nome = lerArquivoConta(NOME_FILE)
+  if not nome then
+    return configurarConta()
+  end
+
+  term.setBackgroundColor(colors.black)
+  term.clear()
+  term.setCursorPos(1, 1)
+  printColor("Bem-vindo de volta, " .. nome .. "!", colors.yellow)
+
+  local senhaSalva = lerArquivoConta(SENHA_FILE)
+  if senhaSalva and senhaSalva ~= "" then
+    local tentativas = 3
+    while tentativas > 0 do
+      term.write("Senha: ")
+      local digitada = read("*")
+      if digitada == senhaSalva then
+        return nome
+      end
+      tentativas = tentativas - 1
+      if tentativas > 0 then
+        printColor("Senha incorreta. Tentativas restantes: " .. tentativas, colors.red)
+      end
+    end
+    printColor("Muitas tentativas erradas. Desligando por seguranca...", colors.red)
+    sleep(2)
+    os.shutdown()
+  end
+
+  return nome
+end
+
+local ownerName = fazerLogin()
+
+-- ===== Tela de boas-vindas =====
+-- Aparece toda vez, logo depois do login, antes do shell
+local function telaBoasVindas(nome)
+  local w, h = term.getSize()
+
+  local logo = {
+    " _____ _____ _      _                  ",
+    "|  ___/ ____| |    (_)                 ",
+    "| |  | |     | |     _ _ __  _   ___  _",
+    "| |  | |     | |    | | '_ \\| | | \\ \\/ ",
+    "| |__| |____ | |____| | | | | |_| |>  <",
+    "|_____\\_____||______|_|_| |_|\\__,_/_/\\_\\",
+  }
+
+  local function centerText(y, text, color)
+    local x = math.max(1, math.floor((w - #text) / 2) + 1)
+    term.setCursorPos(x, y)
+    if term.isColor and term.isColor() and color then
+      term.setTextColor(color)
+    end
+    term.write(text)
+    term.setTextColor(colors.white)
+  end
+
+  term.setBackgroundColor(colors.black)
+  term.clear()
+
+  local startY = math.max(1, math.floor(h / 2) - 5)
+  for i, line in ipairs(logo) do
+    centerText(startY + i - 1, line, colors.lime)
+  end
+
+  centerText(startY + #logo + 1, "Bem-vindo, " .. nome .. "!", colors.white)
+  centerText(startY + #logo + 2, "CCLinux " .. VERSION, colors.gray)
+
+  monWrite("Bem-vindo, " .. nome .. "! (CCLinux " .. VERSION .. ")")
+  playNote("harp", 12)
+
+  sleep(1.5)
+
+  term.setBackgroundColor(colors.black)
+  term.clear()
+  term.setCursorPos(1, 1)
+end
+
+telaBoasVindas(ownerName)
+
+-- ===== Calculadora =====
+-- Interpretador de expressoes matematicas simples,
+-- suporta + - * / % ^ e parenteses
+local function calcEval(exprStr)
+  local pos = 1
+  local len = #exprStr
+
+  local function skipSpaces()
+    while pos <= len and exprStr:sub(pos, pos):match("%s") do
+      pos = pos + 1
+    end
+  end
+
+  local function peek()
+    skipSpaces()
+    return exprStr:sub(pos, pos)
+  end
+
+  local parseExpr
+
+  local function parseNumber()
+    skipSpaces()
+    local start = pos
+    while pos <= len and exprStr:sub(pos, pos):match("[%d%.]") do
+      pos = pos + 1
+    end
+    local numStr = exprStr:sub(start, pos - 1)
+    local num = tonumber(numStr)
+    if not num then error("numero invalido perto de '" .. exprStr:sub(start) .. "'") end
+    return num
+  end
+
+  local function parseFactor()
+    skipSpaces()
+    local c = peek()
+    if c == "(" then
+      pos = pos + 1
+      local val = parseExpr()
+      skipSpaces()
+      if peek() ~= ")" then error("parenteses nao fechados") end
+      pos = pos + 1
+      return val
+    elseif c == "-" then
+      pos = pos + 1
+      return -parseFactor()
+    elseif c == "" then
+      error("expressao incompleta")
+    else
+      return parseNumber()
+    end
+  end
+
+  local function parsePow()
+    local base = parseFactor()
+    if peek() == "^" then
+      pos = pos + 1
+      return base ^ parsePow()
+    end
+    return base
+  end
+
+  local function parseTerm()
+    local val = parsePow()
+    while true do
+      local c = peek()
+      if c == "*" then
+        pos = pos + 1
+        val = val * parsePow()
+      elseif c == "/" then
+        pos = pos + 1
+        local divisor = parsePow()
+        if divisor == 0 then error("divisao por zero") end
+        val = val / divisor
+      elseif c == "%" then
+        pos = pos + 1
+        val = val % parsePow()
+      else
+        break
+      end
+    end
+    return val
+  end
+
+  parseExpr = function()
+    local val = parseTerm()
+    while true do
+      local c = peek()
+      if c == "+" then
+        pos = pos + 1
+        val = val + parseTerm()
+      elseif c == "-" then
+        pos = pos + 1
+        val = val - parseTerm()
+      else
+        break
+      end
+    end
+    return val
+  end
+
+  local result = parseExpr()
+  skipSpaces()
+  if pos <= len then
+    error("caractere inesperado: '" .. exprStr:sub(pos) .. "'")
+  end
+  return result
+end
+
 local commands = {}
 
 commands["help"] = function(args)
@@ -149,8 +404,12 @@ commands["help"] = function(args)
     "edit <file>    - edita um arquivo",
     "disco          - mostra unidades de disco conectadas",
     "ejetar [lado]  - ejeta o disquete da unidade",
-    "gravarinstalador - grava um disquete auto-instalavel",
+    "cdc            - grava um disquete auto-instalavel",
     "beep [nota]    - toca um som no speaker (se houver)",
+    "imprimir <txt> - imprime texto na impressora (se houver)",
+    "calc <expr>    - calculadora rapida (ex: calc 2+2*5)",
+    "calculadora    - abre a calculadora interativa",
+    "resetconta     - apaga nome/senha salvos da conta",
     "reboot         - reinicia o computador",
     "shutdown       - desliga o computador",
     "exit           - sai do CCLinux para o CraftOS",
@@ -355,7 +614,7 @@ commands["clear"] = function(args)
 end
 
 commands["whoami"] = function(args)
-  print("root")
+  print(ownerName)
 end
 
 commands["uname"] = function(args)
@@ -382,7 +641,7 @@ commands["neofetch"] = function(args)
     "\\____\\____|_____|_|_| |_|\\__,_/_/\\_\\",
   }
   local info = {
-    "user@" .. label,
+    ownerName .. "@" .. label,
     "-------------------",
     "OS: CCLinux " .. VERSION,
     "Host: " .. label .. " (#" .. id .. ")",
@@ -458,7 +717,7 @@ commands["ejetar"] = function(args)
   playNote("bass", 8)
 end
 
-commands["gravarinstalador"] = function(args)
+commands["cdc"] = function(args)
   local side = nil
   for _, s in ipairs(peripheral.getNames()) do
     if peripheral.getType(s) == "drive" and disk.isPresent(s) then
@@ -467,11 +726,11 @@ commands["gravarinstalador"] = function(args)
     end
   end
   if not side then
-    printColor("gravarinstalador: coloque um disquete na unidade primeiro", colors.red)
+    printColor("cdc: coloque um disquete na unidade primeiro", colors.red)
     return
   end
   if not http then
-    printColor("gravarinstalador: a API http esta desativada neste servidor", colors.red)
+    printColor("cdc: a API http esta desativada neste servidor", colors.red)
     return
   end
 
@@ -500,6 +759,21 @@ term.setBackgroundColor(colors.black)
 term.clear()
 term.setCursorPos(1, 1)
 print("Instalando CCLinux pela internet...")
+print("")
+
+local w, h = term.getSize()
+local barWidth = math.min(w - 4, 30)
+local barY = 4
+
+local function desenharBarra(percentual, texto)
+  local filled = math.floor((percentual / 100) * (barWidth - 2))
+  term.setCursorPos(1, barY)
+  term.clearLine()
+  term.write("[" .. string.rep("=", filled) .. string.rep(" ", barWidth - 2 - filled) .. "] " .. percentual .. "%")
+  term.setCursorPos(1, barY + 2)
+  term.clearLine()
+  term.write(texto)
+end
 
 local function baixar(url, caminho)
   local ok, response = pcall(http.get, url)
@@ -516,14 +790,27 @@ local function baixar(url, caminho)
   return true
 end
 
+-- barra de progresso rapida, mas com pausinhas de vez em
+-- quando pra nao passar tao instantaneo
+desenharBarra(10, "Conectando ao servidor...")
+sleep(0.15)
+desenharBarra(30, "Baixando startup.lua...")
 local ok1 = baixar(STARTUP_URL, "startup.lua")
+desenharBarra(55, "Baixando cclinux.lua...")
+sleep(0.2)
 local ok2 = baixar(CCLINUX_URL, "cclinux.lua")
+desenharBarra(80, "Finalizando instalacao...")
+sleep(0.25)
+desenharBarra(100, "Concluido!")
+sleep(0.3)
 
 if ok1 and ok2 then
+  print("")
   print("CCLinux instalado com sucesso! Reiniciando...")
   sleep(1)
   os.reboot()
 else
+  print("")
   print("Erro na instalacao. Verifique se a API http esta ativada no servidor.")
 end
 ]]
@@ -547,6 +834,75 @@ commands["beep"] = function(args)
   end
   playNote(args[1], tonumber(args[2]))
   print("Bip!")
+end
+
+commands["imprimir"] = function(args)
+  if not printerDevice then
+    printColor("imprimir: nenhuma impressora conectada", colors.red)
+    return
+  end
+  local texto = table.concat(args, " ")
+  if texto == "" then
+    printColor("imprimir: nada para imprimir. Uso: imprimir <texto>", colors.red)
+    return
+  end
+  local ok = printerDevice.newPage()
+  if not ok then
+    printColor("imprimir: coloque papel e tinta na impressora", colors.red)
+    return
+  end
+  printerDevice.setPageTitle("CCLinux")
+  printerDevice.write(texto)
+  printerDevice.endPage()
+  printColor("Pagina impressa!", colors.lime)
+end
+
+commands["calc"] = function(args)
+  if #args == 0 then
+    printColor("calc: uso: calc <expressao> (ex: calc 2+2*5)", colors.red)
+    return
+  end
+  local expr = table.concat(args, " ")
+  local ok, result = pcall(calcEval, expr)
+  if ok then
+    print(expr .. " = " .. tostring(result))
+  else
+    printColor("calc: erro - " .. tostring(result), colors.red)
+  end
+end
+
+commands["calculadora"] = function(args)
+  printColor("Calculadora CCLinux - digite uma expressao ou 'sair' pra voltar", colors.yellow)
+  while true do
+    term.write("calc> ")
+    local line = read()
+    monWrite("calc> " .. (line or ""))
+    if not line or line == "sair" or line == "exit" then
+      break
+    end
+    if line ~= "" then
+      local ok, result = pcall(calcEval, line)
+      if ok then
+        print("= " .. tostring(result))
+      else
+        printColor("Erro: " .. tostring(result), colors.red)
+      end
+    end
+  end
+end
+
+commands["resetconta"] = function(args)
+  printColor("Isso vai apagar o nome e a senha salvos. Digite 'sim' pra confirmar:", colors.yellow)
+  term.write("> ")
+  local confirm = read()
+  if confirm == "sim" then
+    if fs.exists(ACCOUNT_DIR) then
+      fs.delete(ACCOUNT_DIR)
+    end
+    printColor("Conta resetada! Reinicie o computador pra configurar de novo.", colors.lime)
+  else
+    printColor("Cancelado.", colors.yellow)
+  end
 end
 
 commands["reboot"] = function(args)
@@ -574,11 +930,10 @@ end
 
 term.setBackgroundColor(colors.black)
 term.setTextColor(colors.white)
-printColor("Bem-vindo ao CCLinux " .. VERSION .. "! Digite 'help' para ver os comandos.", colors.yellow)
-playNote("harp", 12)
+printColor("Digite 'help' para ver os comandos.", colors.yellow)
 
 while running do
-  local promptText = "root@cclinux:" .. prettyPath(currentDir) .. "$ "
+  local promptText = ownerName .. ":" .. prettyPath(currentDir) .. "$ "
 
   if term.isColor and term.isColor() then
     term.setTextColor(colors.lime)
