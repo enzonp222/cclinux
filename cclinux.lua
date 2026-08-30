@@ -737,18 +737,27 @@ commands["cdc"] = function(args)
 local STARTUP_URL = "https://raw.githubusercontent.com/enzonp222/cclinux/refs/heads/main/startup.lua"
 local CCLINUX_URL = "https://raw.githubusercontent.com/enzonp222/cclinux/refs/heads/main/cclinux.lua"
 
--- o CC:Tweaked roda o startup.lua do disquete TODA VEZ que o
--- computador liga (nao so quando ele nao tem startup proprio).
--- por isso, se o CCLinux ja estiver instalado aqui, nao faz
--- nada -- so deixa o boot normal continuar, sem reinstalar
--- nem reiniciar de novo (evita o loop infinito).
--- o disquete tem PRIORIDADE sobre o startup.lua local quando
--- esta inserido (assim funciona o boot do CC:Tweaked), entao
--- so dar "return" aqui faria o computador cair no CraftOS
--- puro. Por isso, se ja estiver instalado, chamamos o
--- startup.lua local na mao pra realmente abrir o CCLinux.
+-- em vez de depender do bios do CC:Tweaked detectar sozinho
+-- o startup.lua local apos um os.reboot() (o que nem sempre
+-- funciona direito com o disquete ainda inserido), a gente
+-- chama o CCLinux diretamente por aqui. Se der erro, mostra
+-- o erro real na tela em vez de cair escondido no CraftOS.
+local function bootarCCLinux()
+  local ok, err = pcall(dofile, "startup.lua")
+  if not ok then
+    term.setBackgroundColor(colors.black)
+    term.clear()
+    term.setCursorPos(1, 1)
+    print("Erro ao iniciar o CCLinux:")
+    print(tostring(err))
+    print("")
+    print("Pressione qualquer tecla para continuar...")
+    os.pullEvent("key")
+  end
+end
+
 if fs.exists("cclinux.lua") and fs.exists("startup.lua") then
-  dofile("startup.lua")
+  bootarCCLinux()
   return
 end
 
@@ -803,9 +812,9 @@ sleep(0.3)
 
 if ok1 and ok2 then
   print("")
-  print("CCLinux instalado com sucesso! Reiniciando...")
+  print("CCLinux instalado com sucesso! Iniciando...")
   sleep(1)
-  os.reboot()
+  bootarCCLinux()
 else
   print("")
   print("Erro na instalacao. Verifique se a API http esta ativada no servidor.")
