@@ -161,20 +161,66 @@ local function escreverArquivoConta(path, content)
   f.close()
 end
 
-local function configurarConta()
+local function cabecalhoTela(titulo, corBorda)
+  local w = select(1, term.getSize())
+  local borda = "+" .. string.rep("-", w - 2) .. "+"
+
   term.setBackgroundColor(colors.black)
   term.clear()
   term.setCursorPos(1, 1)
-  printColor("Bem-vindo ao CCLinux! Vamos configurar sua conta.", colors.yellow)
 
-  term.write("Nome do dono deste computador: ")
+  printColor(borda, corBorda)
+
+  local x = math.max(1, math.floor((w - #titulo) / 2) + 1)
+  term.setCursorPos(x, 2)
+  term.setTextColor(colors.white)
+  term.write(titulo)
+  monWrite(titulo, colors.white)
+
+  term.setCursorPos(1, 3)
+  printColor(borda, corBorda)
+  print("")
+end
+
+local function desenharLogo()
+  local w = select(1, term.getSize())
+  local logo = {
+    "  ____ ____ _ _                   ",
+    " / ___/ ___| (_)_ __  _   ___  __ ",
+    "| |  | |   | | | '_ \\| | | \\ \\/ / ",
+    "| |__| |___| | | | | | |_| |>  <  ",
+    " \\____\\____|_|_|_| |_|\\__,_/_/\\_\\ ",
+  }
+
+  term.setBackgroundColor(colors.black)
+  term.clear()
+  term.setCursorPos(1, 1)
+
+  for i, line in ipairs(logo) do
+    local x = math.max(1, math.floor((w - #line) / 2) + 1)
+    term.setCursorPos(x, i)
+    term.setTextColor(colors.lime)
+    term.write(line)
+    monWrite(line, colors.lime)
+  end
+  term.setTextColor(colors.white)
+  term.setCursorPos(1, #logo + 2)
+end
+
+local function configurarConta()
+  desenharLogo()
+  printColor("Vamos preparar o CCLinux para uso.", colors.yellow)
+  print("")
+
+  term.write("Qual e o seu nome: ")
   local nome = read()
   while not nome or nome == "" do
     printColor("O nome nao pode ficar em branco.", colors.red)
-    term.write("Nome do dono deste computador: ")
+    term.write("Qual e o seu nome: ")
     nome = read()
   end
 
+  print("")
   term.write("Senha (opcional, deixe em branco se nao quiser): ")
   local senha = read("*")
 
@@ -186,7 +232,8 @@ local function configurarConta()
     escreverArquivoConta(SENHA_FILE, senha)
   end
 
-  printColor("Conta configurada! Iniciando o CCLinux...", colors.lime)
+  print("")
+  printColor("Tudo pronto, " .. nome .. "! Iniciando o CCLinux...", colors.lime)
   sleep(1)
   return nome
 end
@@ -230,31 +277,8 @@ local ownerName = fazerLogin()
 -- Aparece toda vez, logo depois do login, e fica na tela
 -- (nao some sozinha, o shell continua embaixo dela)
 local function telaBoasVindas(nome)
-  local w = select(1, term.getSize())
-  local linha = string.rep("=", w)
-
-  local function centerText(text, color)
-    local x = math.max(1, math.floor((w - #text) / 2) + 1)
-    term.setCursorPos(x, ({ term.getCursorPos() })[2])
-    if term.isColor and term.isColor() and color then
-      term.setTextColor(color)
-    end
-    term.write(text)
-    term.setTextColor(colors.white)
-    monWrite(text, color)
-  end
-
-  term.setBackgroundColor(colors.black)
-  term.clear()
-  term.setCursorPos(1, 1)
-
-  printColor(linha, colors.white)
-  centerText("CCLinux " .. VERSION, colors.white)
-  print("")
-  printColor(linha, colors.white)
-  print("")
-  print("Bem-vindo ao CCLinux!")
-  print("feito por enzo")
+  cabecalhoTela("CCLinux " .. VERSION, colors.lime)
+  print("Ola, " .. nome .. "!")
   print("")
 
   playNote("harp", 12)
