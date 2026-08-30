@@ -1,10 +1,10 @@
 -- ============================================
---  CCLinux 1.0 - Shell principal
+--  CCLinux 1.2 - Shell principal
 --  Coloque este arquivo como "cclinux.lua"
 --  na raiz do computador
 -- ============================================
 
-local VERSION = "1.0"
+local VERSION = "1.2"
 local currentDir = ""  -- "" representa a raiz "/"
 local history = {}
 local running = true
@@ -277,7 +277,7 @@ local ownerName = fazerLogin()
 -- Aparece toda vez, logo depois do login, e fica na tela
 -- (nao some sozinha, o shell continua embaixo dela)
 local function telaBoasVindas(nome)
-  cabecalhoTela("CCLinux " .. VERSION, colors.lime)
+  desenharLogo()
   print("Ola, " .. nome .. "!")
   print("")
 

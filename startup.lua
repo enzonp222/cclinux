@@ -1,5 +1,5 @@
 -- ============================================
---  CCLinux 1.0 - Boot Loader
+--  CCLinux 1.2 - Boot Loader
 --  Coloque este arquivo como "startup.lua"
 --  na raiz do computador junto com "cclinux.lua"
 -- ============================================
@@ -33,7 +33,7 @@ for i, line in ipairs(logo) do
   centerText(startY + i - 1, line, colors.lime)
 end
 
-centerText(startY + #logo + 1, "CCLinux 1.0 - Booting...", colors.white)
+centerText(startY + #logo + 1, "CCLinux 1.2 - Booting...", colors.white)
 
 local barY = startY + #logo + 3
 local barWidth = math.min(w - 10, 40)
